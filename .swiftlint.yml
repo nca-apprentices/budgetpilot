@@ -1,0 +1,11 @@
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+  - BudgetPilot.xcodeproj
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing

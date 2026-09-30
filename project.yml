@@ -1,0 +1,46 @@
+name: BudgetPilot
+fileGroups:
+  - project.yml
+  - mise.toml
+  - README.md
+  - .swiftlint.yml
+  - .swiftformat
+  - .editorconfig
+  - .github
+options:
+  bundleIdPrefix: ch.nca
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  BudgetPilot:
+    type: application
+    platform: iOS
+    sources:
+      - Sources/BudgetPilot
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.nca.budgetpilot
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: BudgetPilot
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+    scheme:
+      testTargets:
+        - BudgetPilotTests
+  BudgetPilotTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests/BudgetPilotTests
+    dependencies:
+      - target: BudgetPilot
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
