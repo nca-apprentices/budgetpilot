@@ -42,7 +42,14 @@ run = '''
 set -euo pipefail
 sim="$(scripts/pick-simulator.sh)"
 xcrun simctl boot "$sim" 2>/dev/null || true
-open -a Simulator
+
+# Bring up the simulator window. Xcode 26 and earlier ship Simulator.app;
+# Xcode 27 replaced it with DeviceHub.app. Installing and launching below
+# works headlessly either way, so a missing window must not fail the task.
+open -a Simulator 2>/dev/null \
+  || open "$(xcode-select -p)/../Applications/DeviceHub.app" 2>/dev/null \
+  || echo "note: could not open a simulator window; launching headlessly"
+
 xcrun simctl install booted .build/Build/Products/Debug-iphonesimulator/BudgetPilot.app
 xcrun simctl launch booted ch.nca.budgetpilot
 '''
