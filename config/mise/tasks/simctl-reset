@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Shut down all running simulators"
+set -euo pipefail
+
+xcrun simctl shutdown all

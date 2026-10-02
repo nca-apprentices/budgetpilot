@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Remove the generated Xcode project and build artifacts"
+set -euo pipefail
+
+rm -rf BudgetPilot.xcodeproj .build

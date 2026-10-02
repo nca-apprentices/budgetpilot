@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Run SwiftLint over Sources/ and Tests/"
+set -euo pipefail
+
+swiftlint
