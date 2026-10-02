@@ -9,15 +9,39 @@ for the iOS SDK, the simulator and SwiftUI previews, never to build or run.
 
 - **Xcode** — required for the iOS SDK, simulator and `xcodebuild`.
 - **[mise](https://mise.jdx.dev/)** — installs every other tool and runs all
-  project tasks. Install it with:
-
-  ```bash
-  curl https://mise.run | sh
-  ```
+  project tasks. See below.
 
 Everything else (XcodeGen, SwiftLint, SwiftFormat) is pinned in
 [`mise.toml`](mise.toml) and installed by mise, so no manual `brew install`
 steps and no version drift between machines or CI.
+
+### Installing mise
+
+```bash
+curl https://mise.run | sh
+```
+
+The installer places mise in `~/.local/bin` but deliberately does **not** touch
+your shell config, so a new shell will not find it yet — `mise: command not
+found` at this point is expected. Activate it once (zsh is the macOS default):
+
+```bash
+echo 'eval "$(~/.local/bin/mise activate zsh)"' >> ~/.zshrc
+```
+
+For bash, append the `activate bash` equivalent to `~/.bashrc` instead. Then
+open a new terminal, or `source` the file you just edited.
+
+Activation does two things: it puts `mise` itself on your `PATH`, and it makes
+the versions pinned in `mise.toml` take precedence over anything installed via
+Homebrew — so `swiftlint` and `swiftformat` in your shell are the same versions
+CI runs.
+
+Check that it worked; `activated` and `shims_on_path` should both say `yes`:
+
+```bash
+mise doctor
+```
 
 ## Getting started
 
@@ -25,6 +49,10 @@ steps and no version drift between machines or CI.
 mise install      # install the pinned toolchain
 mise run build    # generate the Xcode project and build it
 ```
+
+CI needs none of this setup — [`ci.yml`](.github/workflows/ci.yml) uses
+[`jdx/mise-action`](https://github.com/jdx/mise-action), which installs and
+activates mise on the runner.
 
 ## How the project is laid out
 
