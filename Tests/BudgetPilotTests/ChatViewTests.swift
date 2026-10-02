@@ -1,10 +1,10 @@
 @testable import BudgetPilot
-import SwiftUI
-import XCTest
+import Testing
 
-final class ChatViewTests: XCTestCase {
-    func testChatViewHasBody() {
+struct ChatViewTests {
+    @Test
+    func bodyRendersAppBackground() {
         let view = ChatView()
-        XCTAssertNotNil(view.body)
+        #expect(type(of: view.body) == AppBackground.self)
     }
 }
