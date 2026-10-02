@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Build for the iOS Simulator"
+#MISE depends=["generate"]
+set -euo pipefail
+
+xcodebuild build -scheme BudgetPilot -destination 'generic/platform=iOS Simulator' -derivedDataPath .build

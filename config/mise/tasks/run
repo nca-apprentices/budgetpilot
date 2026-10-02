@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Build, boot a simulator and launch the app"
+#MISE depends=["build"]
+set -euo pipefail
+
+sim="$(scripts/pick-simulator.sh)"
+xcrun simctl boot "$sim" 2>/dev/null || true
+
+# Simulator.app up to Xcode 26, DeviceHub.app from 27; the window is optional.
+open -b com.apple.iphonesimulator 2>/dev/null || open -b com.apple.dt.Devices 2>/dev/null || true
+
+xcrun simctl install booted .build/Build/Products/Debug-iphonesimulator/BudgetPilot.app
+xcrun simctl launch booted ch.nca.budgetpilot

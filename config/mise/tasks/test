@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Run unit tests on a simulator"
+#MISE depends=["generate"]
+set -euo pipefail
+
+sim="$(scripts/pick-simulator.sh)"
+xcodebuild test -scheme BudgetPilot -destination "platform=iOS Simulator,name=$sim" -derivedDataPath .build

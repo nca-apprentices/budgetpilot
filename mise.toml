@@ -3,54 +3,6 @@
 "aqua:realm/SwiftLint" = "0.65.1"
 "github:nicklockwood/SwiftFormat" = { version = "0.63.1", matching = "swiftformat.zip" }
 
-[tasks.generate]
-description = "Generate the Xcode project from project.yml"
-run = "xcodegen generate"
-
-[tasks.lint]
-description = "Run SwiftLint over Sources/ and Tests/"
-run = "swiftlint"
-
-[tasks.format]
-description = "Run SwiftFormat and write changes"
-run = "swiftformat Sources Tests"
-
-[tasks.format-check]
-description = "Run SwiftFormat in lint mode (used by CI, changes nothing)"
-run = "swiftformat Sources Tests --lint"
-
-[tasks.build]
-description = "Build for the iOS Simulator"
-depends = ["generate"]
-run = "xcodebuild build -scheme BudgetPilot -destination 'generic/platform=iOS Simulator' -derivedDataPath .build"
-
-[tasks.test]
-description = "Run unit tests on a simulator"
-depends = ["generate"]
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-sim="$(scripts/pick-simulator.sh)"
-xcodebuild test -scheme BudgetPilot -destination "platform=iOS Simulator,name=$sim" -derivedDataPath .build
-'''
-
-[tasks.run]
-description = "Build, boot a simulator and launch the app"
-depends = ["build"]
-run = '''
-#!/usr/bin/env bash
-set -euo pipefail
-sim="$(scripts/pick-simulator.sh)"
-xcrun simctl boot "$sim" 2>/dev/null || true
-open -a Simulator
-xcrun simctl install booted .build/Build/Products/Debug-iphonesimulator/BudgetPilot.app
-xcrun simctl launch booted ch.nca.budgetpilot
-'''
-
-[tasks.simctl-reset]
-description = "Shut down all running simulators"
-run = "xcrun simctl shutdown all"
-
-[tasks.clean]
-description = "Remove the generated Xcode project and build artifacts"
-run = "rm -rf BudgetPilot.xcodeproj .build"
+# Tasks are scripts under this path; mise does not search it by default.
+[task_config]
+includes = ["config/mise/tasks"]

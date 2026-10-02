@@ -4,7 +4,7 @@ import SwiftUI
 struct BudgetPilotApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ChatView()
         }
     }
 }

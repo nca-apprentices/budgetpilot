@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Run SwiftFormat in lint mode (used by CI, changes nothing)"
+set -euo pipefail
+
+swiftformat Sources Tests --lint

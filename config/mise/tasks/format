@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Run SwiftFormat and write changes"
+set -euo pipefail
+
+swiftformat Sources Tests

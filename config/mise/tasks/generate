@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Generate the Xcode project from project.yml"
+set -euo pipefail
+
+xcodegen generate
