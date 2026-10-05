@@ -25,9 +25,25 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: BudgetPilot
         TARGETED_DEVICE_FAMILY: "1"
-        CODE_SIGN_STYLE: Automatic
-        CODE_SIGNING_REQUIRED: NO
-        CODE_SIGNING_ALLOWED: NO
+        # Overridden per release by fastlane; these are only the fallbacks.
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        # Saves answering the export-compliance question on every upload.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+      configs:
+        # Simulator builds and CI stay unsigned, so no certificate is needed.
+        debug:
+          CODE_SIGN_STYLE: Automatic
+          CODE_SIGNING_REQUIRED: NO
+          CODE_SIGNING_ALLOWED: NO
+        # Release is signed for the device, the same way netgrade does it.
+        release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "iPhone Distribution"
+          # Substituted by XcodeGen from the environment; fastlane sets it
+          # from the TEAM_ID secret, so the id is not in the repository.
+          DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
+          PROVISIONING_PROFILE_SPECIFIER: budgetpilot-provisioning
     scheme:
       testTargets:
         - BudgetPilotTests
