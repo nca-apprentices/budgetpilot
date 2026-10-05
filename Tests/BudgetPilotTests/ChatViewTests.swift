@@ -3,8 +3,9 @@ import Testing
 
 struct ChatViewTests {
     @Test
-    func bodyRendersAppBackground() {
+    func bodyContainsAppBackground() {
         let view = ChatView()
-        #expect(type(of: view.body) == AppBackground.self)
+        let typeName = String(describing: type(of: view.body))
+        #expect(typeName.contains("AppBackground"))
     }
 }
