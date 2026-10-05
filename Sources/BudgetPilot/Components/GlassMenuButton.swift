@@ -26,6 +26,6 @@ struct GlassMenuButton: View {
 #Preview {
     ZStack {
         AppBackground()
-        GlassMenuButton(systemImage: "sparkles", title: "KI eintragen")
+        GlassMenuButton(systemImage: "sparkles", title: "Add with AI")
     }
 }
