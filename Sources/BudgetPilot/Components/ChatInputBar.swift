@@ -18,6 +18,7 @@ struct ChatInputBar: View {
                     Spacer(minLength: 0)
 
                     GlassIconButton { BudgetRing() }
+                        .accessibilityLabel("Budget")
                     GlassIconButton(systemImage: "mic")
                     GlassIconButton(systemImage: "waveform", prominent: true)
                 }
