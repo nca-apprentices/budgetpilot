@@ -7,20 +7,20 @@ struct ChatInputBar: View {
     var body: some View {
         GlassEffectContainer(spacing: 10) {
             VStack(alignment: .leading, spacing: 14) {
-                TextField("Was hast du ausgegeben?", text: $text)
+                TextField("What did you buy?", text: $text)
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 6)
 
                 HStack(spacing: 8) {
-                    GlassIconButton(systemImage: "plus")
-                    GlassMenuButton(systemImage: "sparkles", title: "KI eintragen")
+                    GlassIconButton(systemImage: "plus").accessibilityLabel("Add receipt")
+                    GlassMenuButton(systemImage: "sparkles", title: "Add with AI")
 
                     Spacer(minLength: 0)
 
                     GlassIconButton { BudgetRing() }
                         .accessibilityLabel("Budget")
-                    GlassIconButton(systemImage: "mic")
-                    GlassIconButton(systemImage: "waveform", prominent: true)
+                    GlassIconButton(systemImage: "mic").accessibilityLabel("Dictate")
+                    GlassIconButton(systemImage: "waveform", prominent: true).accessibilityLabel("Talk to assistant")
                 }
             }
             .padding(14)
