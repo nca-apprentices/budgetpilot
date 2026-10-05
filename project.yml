@@ -10,7 +10,7 @@ fileGroups:
 options:
   bundleIdPrefix: ch.nca
   deploymentTarget:
-    iOS: "17.0"
+    iOS: "26.0"
 targets:
   BudgetPilot:
     type: application
