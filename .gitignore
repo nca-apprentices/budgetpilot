@@ -13,3 +13,22 @@ xcuserdata/
 
 # JetBrains IDEs
 .idea/
+
+# fastlane
+*.ipa
+*.dSYM.zip
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output/
+vendor/bundle/
+
+# Signing material and credentials — these must never be committed.
+# They belong in GitHub Actions secrets or the local keychain.
+*.p12
+*.p8
+*.mobileprovision
+*.cer
+*.certSigningRequest
+.env
+.env.*
+fastlane/.env*
