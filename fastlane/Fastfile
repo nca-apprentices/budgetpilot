@@ -1,0 +1,76 @@
+default_platform :ios
+
+REPO_ROOT = File.expand_path("..", __dir__)
+APP_IDENTIFIER = "ch.nca.budgetpilot"
+PROVISIONING_PROFILE = "budgetpilot-provisioning"
+
+platform :ios do
+  desc "Build and upload to TestFlight. Pass version:0.1.0-3, add external:true to send it to the nca group."
+  lane :release do |options|
+    version = options[:version]
+    UI.user_error!("Pass a version, for example: fastlane ios release version:0.1.0-3") if version.to_s.empty?
+
+    marketing_version, build_part = version.split("-", 2)
+
+    # TestFlight only accepts a numeric build number, so a tag like
+    # 0.1.0-beta2 falls back to a timestamp.
+    build_number =
+      if build_part.to_s.empty?
+        "1"
+      elsif build_part.match?(/\A\d+\z/)
+        build_part
+      else
+        UI.important("Build part '#{build_part}' is not numeric, using a timestamp instead")
+        Time.now.strftime("%Y%m%d%H%M")
+      end
+
+    UI.message("Marketing version #{marketing_version}, build number #{build_number}")
+
+    # The team id is kept out of the repository, so project.yml reads it from
+    # the environment. Fail here rather than with an opaque signing error.
+    team_id = ENV["TEAM_ID"]
+    UI.user_error!("TEAM_ID is not set — the release build cannot be signed without it") if team_id.to_s.empty?
+    ENV["DEVELOPMENT_TEAM"] = team_id
+
+    # The .xcodeproj is generated and not committed, so build it first.
+    Dir.chdir(REPO_ROOT) { sh("mise", "run", "generate") }
+
+    # Version and build number are passed in rather than written into the
+    # project file, which would be thrown away on the next generate.
+    build_ios_app(
+      scheme: "BudgetPilot",
+      project: "BudgetPilot.xcodeproj",
+      configuration: "Release",
+      export_method: "app-store",
+      clean: true,
+      xcargs: "MARKETING_VERSION=#{marketing_version} CURRENT_PROJECT_VERSION=#{build_number}",
+      export_options: {
+        provisioningProfiles: {
+          APP_IDENTIFIER => PROVISIONING_PROFILE
+        }
+      }
+    )
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+      duration: 1200,
+      in_house: false
+    )
+
+    # Internal testers get the build straight away. External distribution
+    # needs a tester group and a review of the first build, so it is opt-in.
+    external = options[:external].to_s == "true"
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      changelog: ENV["RELEASE_NOTES"] || "Build #{version}",
+      expire_previous_builds: false,
+      uses_non_exempt_encryption: false,
+      distribute_external: external,
+      groups: external ? ["nca"] : nil
+    )
+  end
+end

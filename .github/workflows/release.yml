@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  testflight:
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Set up mise
+        uses: jdx/mise-action@v5
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG_NAME="${{ github.event.release.tag_name }}"
+          echo "version=${TAG_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Import certificate and provisioning profile
+        env:
+          APPLE_DIST_CERT_P12: ${{ secrets.APPLE_DIST_CERT_P12 }}
+          APPLE_DIST_CERT_PASS: ${{ secrets.APPLE_DIST_CERT_PASS }}
+          IOS_PROVISION_PROFILE: ${{ secrets.IOS_PROVISION_PROFILE }}
+        run: |
+          echo "$APPLE_DIST_CERT_P12" | base64 --decode > dist.p12
+          echo "$IOS_PROVISION_PROFILE" | base64 --decode > app.mobileprovision
+
+          security create-keychain -p "" build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -lut 7200 build.keychain
+          security default-keychain -s build.keychain
+
+          security import dist.p12 -k build.keychain -P "$APPLE_DIST_CERT_PASS" -T /usr/bin/codesign
+          security list-keychains -d user -s build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain > /dev/null
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp app.mobileprovision \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/budgetpilot-provisioning.mobileprovision"
+
+          rm -f dist.p12 app.mobileprovision
+
+      - name: Build and upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_IDENTIFIER: ${{ secrets.APP_IDENTIFIER }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          RELEASE_NOTES: ${{ github.event.release.body }}
+        run: bundle exec fastlane ios release version:${{ steps.version.outputs.version }}
