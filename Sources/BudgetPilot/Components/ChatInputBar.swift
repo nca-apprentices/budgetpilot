@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// The chat composer. Buttons are deliberately inert for now.
+/// The chat composer. Only the send button is wired up for now.
 struct ChatInputBar: View {
     @State private var text = ""
+    var onSend: (String) -> Void
 
     var body: some View {
         GlassEffectContainer(spacing: 10) {
@@ -13,7 +14,10 @@ struct ChatInputBar: View {
                         .padding(.horizontal, 6)
 
                     if !text.isEmpty {
-                        GlassIconButton(systemImage: "arrow.up", prominent: true).accessibilityLabel("Send text")
+                        GlassIconButton(systemImage: "arrow.up", prominent: true) {
+                            onSend(text)
+                            text = ""
+                        }.accessibilityLabel("Send text")
                     }
                 }
                 .animation(.default, value: text.isEmpty)
@@ -41,6 +45,6 @@ struct ChatInputBar: View {
 #Preview {
     ZStack(alignment: .bottom) {
         AppBackground()
-        ChatInputBar().padding(16)
+        ChatInputBar { _ in }.padding(16)
     }
 }
