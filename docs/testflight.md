@@ -30,7 +30,7 @@ Settings → Secrets and variables → Actions:
 | `IOS_PROVISION_PROFILE` | `budgetsupporter-provisioning.mobileprovision` as base64 |
 | `APP_STORE_CONNECT_API_KEY_ID` | key id |
 | `APP_STORE_CONNECT_ISSUER_ID` | issuer id — **team keys only**, see below |
-| `APP_STORE_CONNECT_API_KEY_CONTENT` | contents of the `.p8` file |
+| `APP_STORE_CONNECT_API_KEY_CONTENT` | the `.p8` file as base64 |
 | `APP_IDENTIFIER` | `com.nca.budgetsupporter` |
 | `TEAM_ID` | Apple developer team id |
 
@@ -52,7 +52,11 @@ Base64 for the binary files:
 ```bash
 base64 -i dist.p12 | pbcopy
 base64 -i budgetsupporter-provisioning.mobileprovision | pbcopy
+base64 -i AuthKey_XXXXXXXXXX.p8 | pbcopy
 ```
+
+The API key goes in base64 too. Pasting the raw PEM tends to lose its
+line breaks, after which the upload fails with "invalid curve name".
 
 ## Releasing
 

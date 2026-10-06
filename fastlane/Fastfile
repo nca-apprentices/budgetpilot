@@ -56,10 +56,14 @@ platform :ios do
     issuer_id = ENV["APP_STORE_CONNECT_ISSUER_ID"]
     issuer_id = nil if issuer_id.to_s.empty?
 
+    # The key is stored base64 encoded. Pasting the raw PEM into a secret
+    # tends to lose its line breaks, and OpenSSL then fails to read the
+    # curve: "invalid curve name".
     api_key = app_store_connect_api_key(
       key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
       issuer_id: issuer_id,
       key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+      is_key_content_base64: true,
       duration: 1200,
       in_house: false
     )
