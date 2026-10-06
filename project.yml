@@ -8,7 +8,7 @@ fileGroups:
   - .editorconfig
   - .github
 options:
-  bundleIdPrefix: ch.nca
+  bundleIdPrefix: com.nca
   deploymentTarget:
     iOS: "26.0"
 targets:
@@ -19,7 +19,7 @@ targets:
       - Sources/BudgetPilot
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: ch.nca.budgetpilot
+        PRODUCT_BUNDLE_IDENTIFIER: com.nca.budgetsupporter
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
@@ -39,11 +39,11 @@ targets:
         # Release is signed for the device, the same way netgrade does it.
         release:
           CODE_SIGN_STYLE: Manual
-          CODE_SIGN_IDENTITY: "iPhone Distribution"
+          CODE_SIGN_IDENTITY: "Apple Distribution"
           # Substituted by XcodeGen from the environment; fastlane sets it
           # from the TEAM_ID secret, so the id is not in the repository.
           DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
-          PROVISIONING_PROFILE_SPECIFIER: budgetpilot-provisioning
+          PROVISIONING_PROFILE_SPECIFIER: budgetsupporter-provisioning
     scheme:
       testTargets:
         - BudgetPilotTests

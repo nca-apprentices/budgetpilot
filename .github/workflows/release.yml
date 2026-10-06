@@ -52,7 +52,7 @@ jobs:
 
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           cp app.mobileprovision \
-            "$HOME/Library/MobileDevice/Provisioning Profiles/budgetpilot-provisioning.mobileprovision"
+            "$HOME/Library/MobileDevice/Provisioning Profiles/budgetsupporter-provisioning.mobileprovision"
 
           rm -f dist.p12 app.mobileprovision
 
@@ -61,7 +61,6 @@ jobs:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
           APP_IDENTIFIER: ${{ secrets.APP_IDENTIFIER }}
           TEAM_ID: ${{ secrets.TEAM_ID }}
           RELEASE_NOTES: ${{ github.event.release.body }}
