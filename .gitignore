@@ -32,3 +32,6 @@ vendor/bundle/
 .env
 .env.*
 fastlane/.env*
+
+# Written by XcodeGen alongside the project
+BudgetPilot-Info.plist

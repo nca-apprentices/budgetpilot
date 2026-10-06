@@ -17,19 +17,29 @@ targets:
     platform: iOS
     sources:
       - Sources/BudgetPilot
+    # Written by XcodeGen, not committed. GENERATE_INFOPLIST_FILE cannot
+    # set CFBundleIconName at the top level, and altool rejects the upload
+    # without it (90713).
+    info:
+      path: BudgetPilot-Info.plist
+      properties:
+        CFBundleDisplayName: BudgetPilot
+        CFBundleIconName: AppIcon
+        UILaunchScreen: {}
+        ITSAppUsesNonExemptEncryption: false
+        # Taken from the build settings so fastlane can override them per
+        # release; hardcoding them would send build number 1 every time.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nca.budgetsupporter
         SWIFT_VERSION: "5.0"
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_CFBundleDisplayName: BudgetPilot
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
         # Overridden per release by fastlane; these are only the fallbacks.
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
-        # Saves answering the export-compliance question on every upload.
-        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
       configs:
         # Simulator builds and CI stay unsigned, so no certificate is needed.
         debug:
