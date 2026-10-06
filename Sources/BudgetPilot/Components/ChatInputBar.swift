@@ -7,9 +7,16 @@ struct ChatInputBar: View {
     var body: some View {
         GlassEffectContainer(spacing: 10) {
             VStack(alignment: .leading, spacing: 14) {
-                TextField("What did you buy?", text: $text)
-                    .textFieldStyle(.plain)
-                    .padding(.horizontal, 6)
+                HStack {
+                    TextField("What did you buy?", text: $text)
+                        .textFieldStyle(.plain)
+                        .padding(.horizontal, 6)
+
+                    if !text.isEmpty {
+                        GlassIconButton(systemImage: "arrow.up", prominent: true).accessibilityLabel("Send text")
+                    }
+                }
+                .animation(.default, value: text.isEmpty)
 
                 HStack(spacing: 8) {
                     GlassIconButton(systemImage: "plus").accessibilityLabel("Add receipt")
