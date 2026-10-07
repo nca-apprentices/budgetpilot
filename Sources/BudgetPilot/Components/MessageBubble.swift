@@ -10,6 +10,20 @@ struct MessageBubble: View {
         VStack {
             Text(text)
                 .lineLimit(isExpanded ? nil : 6)
+                .mask {
+                    if fullHeight > collapsedHeight && !isExpanded {
+                        LinearGradient(
+                            stops: [
+                                .init(color: .black, location: 0.6), // fully visible down to 60 %
+                                .init(color: .clear, location: 1.0), // completely hidden at the bottom
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    } else {
+                        Color.black
+                    }
+                }
                 .background {
                     ZStack {
                         Text(text)
