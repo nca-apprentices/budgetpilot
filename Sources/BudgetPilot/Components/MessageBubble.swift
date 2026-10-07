@@ -16,6 +16,7 @@ struct MessageBubble: View {
             } label: {
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
             }
+            .accessibilityLabel(isExpanded ? "Show less" : "Show more")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
