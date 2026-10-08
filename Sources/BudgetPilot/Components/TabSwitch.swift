@@ -12,13 +12,28 @@ struct TabSwitch: View {
                     }
                 } label: {
                     Text(tab.title)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(selection == tab ? .primary : .secondary)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                        .background {
+                            if selection == tab {
+                                Capsule().fill(Color.appSegmentSelected)
+                            }
+                        }
                 }
+                .buttonStyle(.plain)
             }
         }
+        .padding(4)
+        .glassEffect(.regular, in: .capsule)
     }
 }
 
 #Preview {
     @Previewable @State var tab: AppTab = .chat
-    TabSwitch(selection: $tab)
+    ZStack {
+        AppBackground()
+        TabSwitch(selection: $tab)
+    }
 }
