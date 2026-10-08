@@ -10,6 +10,7 @@ struct TopBar: View {
             HStack {
                 GlassIconButton(systemImage: "line.3.horizontal")
                     .accessibilityLabel("Menu")
+                    .controlSize(.large)
 
                 Spacer()
             }
