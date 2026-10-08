@@ -2,12 +2,15 @@ import SwiftUI
 
 struct ChatView: View {
     @State private var messages: [ChatMessage] = []
+    @State private var selectedTab: AppTab = .chat
 
     var body: some View {
         ZStack {
             AppBackground()
 
             VStack {
+                TopBar(selection: $selectedTab)
+
                 if messages.isEmpty {
                     Text("How can I help you with your budget?")
                         .font(.title2)
