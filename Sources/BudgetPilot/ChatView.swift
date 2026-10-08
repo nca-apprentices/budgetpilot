@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ChatView: View {
     @State private var messages: [ChatMessage] = []
+    @State private var selectedTab: AppTab = .chat
 
     var body: some View {
         ZStack {
@@ -28,8 +29,13 @@ struct ChatView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .defaultScrollAnchor(.bottom)
+                    .scrollEdgeEffectStyle(.hard, for: .top)
                 }
-
+            }.safeAreaInset(edge: .top) {
+                TopBar(selection: $selectedTab)
+                    .padding(.top, 8)
+            }
+            .safeAreaInset(edge: .bottom) {
                 ChatInputBar { text in
                     messages.append(ChatMessage(text: text))
                 }
