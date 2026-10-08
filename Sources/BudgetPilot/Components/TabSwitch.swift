@@ -26,7 +26,7 @@ struct TabSwitch: View {
             }
         }
         .padding(4)
-        .glassEffect(.regular, in: .capsule)
+        .glassEffect(.regular.tint(Color.appGlassTint.opacity(0.3)), in: .capsule)
     }
 }
 

@@ -6,4 +6,5 @@ extension Color {
     static let appLightPurple = Color(red: 0.90, green: 0.85, blue: 1.00)
     static let appAccent = Color(red: 0.20, green: 0.46, blue: 0.87)
     static let appSegmentSelected = Color(red: 1.00, green: 1.00, blue: 1.00)
+    static let appGlassTint = Color(red: 1.00, green: 1.00, blue: 1.00)
 }

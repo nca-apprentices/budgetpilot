@@ -29,6 +29,7 @@ struct ChatView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .defaultScrollAnchor(.bottom)
+                    .scrollEdgeEffectStyle(.hard, for: .top)
                 }
             }.safeAreaInset(edge: .top) {
                 TopBar(selection: $selectedTab)
