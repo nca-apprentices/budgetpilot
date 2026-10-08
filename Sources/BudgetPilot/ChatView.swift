@@ -9,8 +9,6 @@ struct ChatView: View {
             AppBackground()
 
             VStack {
-                TopBar(selection: $selectedTab)
-
                 if messages.isEmpty {
                     Text("How can I help you with your budget?")
                         .font(.title2)
@@ -32,7 +30,11 @@ struct ChatView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .defaultScrollAnchor(.bottom)
                 }
-
+            }.safeAreaInset(edge: .top) {
+                TopBar(selection: $selectedTab)
+                    .padding(.top, 8)
+            }
+            .safeAreaInset(edge: .bottom) {
                 ChatInputBar { text in
                     messages.append(ChatMessage(text: text))
                 }
