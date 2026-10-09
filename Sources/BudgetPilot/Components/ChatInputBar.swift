@@ -3,13 +3,14 @@ import SwiftUI
 /// The chat composer. Only the send button is wired up for now.
 struct ChatInputBar: View {
     @State private var text = ""
+    @State private var selectedInputMode: InputMode = .addWithAI
     var onSend: (String) -> Void
 
     var body: some View {
         GlassEffectContainer(spacing: 10) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    TextField("What did you buy?", text: $text)
+                    TextField(selectedInputMode.placeholder, text: $text)
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 6)
 
@@ -24,7 +25,7 @@ struct ChatInputBar: View {
 
                 HStack(spacing: 8) {
                     GlassIconButton(systemImage: "plus").accessibilityLabel("Add receipt")
-                    GlassMenuButton(systemImage: "sparkles", title: "Add with AI")
+                    GlassMenuButton(systemImage: selectedInputMode.systemImage, title: selectedInputMode.title)
 
                     Spacer(minLength: 0)
 
