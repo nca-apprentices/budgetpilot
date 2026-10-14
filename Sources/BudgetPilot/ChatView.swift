@@ -21,7 +21,7 @@ struct ChatView: View {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 8) {
                             ForEach(messages) { message in
-                                MessageBubble(text: message.text)
+                                MessageBubble(text: message.text, isFromUser: message.isFromUser)
                             }
                         }
                         .padding(.horizontal, 16)
