@@ -37,7 +37,7 @@ struct ChatView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 ChatInputBar { text in
-                    messages.append(ChatMessage(text: text))
+                    messages.append(ChatMessage(text: text, isFromUser: true))
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
