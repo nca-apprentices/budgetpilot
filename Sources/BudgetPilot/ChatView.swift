@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatView: View {
     @State private var messages: [ChatMessage] = []
     @State private var selectedTab: AppTab = .chat
+    @State private var assistant = AssistantModel()
 
     var body: some View {
         ZStack {
@@ -38,6 +39,17 @@ struct ChatView: View {
             .safeAreaInset(edge: .bottom) {
                 ChatInputBar { text in
                     messages.append(ChatMessage(text: text, isFromUser: true))
+                    Task {
+                        do {
+                            let reply = try await assistant.respond(to: text)
+                            messages.append(ChatMessage(text: reply, isFromUser: false))
+                        } catch {
+                            messages.append(ChatMessage(
+                                text: "Error: \(error.localizedDescription)",
+                                isFromUser: false
+                            ))
+                        }
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
