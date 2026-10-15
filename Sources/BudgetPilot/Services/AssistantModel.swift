@@ -5,6 +5,8 @@ import MLXLLM
 import MLXLMCommon
 import Tokenizers
 
+/// On-device budget assistant. Loads Gemma 4 with MLX on the first message
+/// and keeps one chat session, so later replies remember the conversation.
 final class AssistantModel {
     private var session: ChatSession?
     private let instructions = """
@@ -26,6 +28,7 @@ final class AssistantModel {
       - other: anything that fits none of the above
     - Choose the category by what the money is for, not by how often it is paid.
     """
+
     func respond(to text: String) async throws -> String {
         if session == nil {
             let container = try await #huggingFaceLoadModelContainer(
