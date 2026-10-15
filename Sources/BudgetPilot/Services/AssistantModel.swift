@@ -16,8 +16,15 @@ final class AssistantModel {
     - The currency is CHF.
     - Only use amounts the user wrote. Never invent or estimate numbers.
     - If the amount is missing, ask for it.
-    - Every expense has one of these categories: housing, groceries,
-      transport, leisure, health, subscriptions, other
+    - Every expense has exactly one of these categories:
+      - housing: rent, utilities, electricity, internet, furniture
+      - groceries: supermarket, bakery, coffee and snacks
+      - transport: public transport tickets and passes (GA, Halbtax), fuel, taxi, parking
+      - leisure: hobbies, going out, restaurants, sports, electronics, travel
+      - health: doctor, dentist, pharmacy, health insurance
+      - subscriptions: streaming, apps, software, memberships
+      - other: anything that fits none of the above
+    - Choose the category by what the money is for, not by how often it is paid.
     """
     func respond(to text: String) async throws -> String {
         if session == nil {
