@@ -52,6 +52,12 @@ targets:
         # release; hardcoding them would send build number 1 every time.
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+    # Written by XcodeGen, not committed. Lets the on-device model use more
+    # memory than the default app limit.
+    entitlements:
+      path: BudgetPilot.entitlements
+      properties:
+        com.apple.developer.kernel.increased-memory-limit: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nca.budgetsupporter
