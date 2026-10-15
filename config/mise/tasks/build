@@ -3,4 +3,5 @@
 #MISE depends=["generate"]
 set -euo pipefail
 
-xcodebuild build -scheme BudgetPilot -destination 'generic/platform=iOS Simulator' -derivedDataPath .build
+# CI can't trust the MLX macro interactively in Xcode.
+xcodebuild build -scheme BudgetPilot -destination 'generic/platform=iOS Simulator' -derivedDataPath .build -skipMacroValidation

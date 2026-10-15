@@ -4,4 +4,5 @@
 set -euo pipefail
 
 sim="$(scripts/pick-simulator.sh)"
-xcodebuild test -scheme BudgetPilot -destination "platform=iOS Simulator,name=$sim" -derivedDataPath .build
+# CI can't trust the MLX macro interactively in Xcode.
+xcodebuild test -scheme BudgetPilot -destination "platform=iOS Simulator,name=$sim" -derivedDataPath .build -skipMacroValidation

@@ -43,7 +43,7 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       clean: true,
-      xcargs: "MARKETING_VERSION=#{marketing_version} CURRENT_PROJECT_VERSION=#{build_number}",
+      xcargs: "MARKETING_VERSION=#{marketing_version} CURRENT_PROJECT_VERSION=#{build_number} -skipMacroValidation",
       export_options: {
         provisioningProfiles: {
           APP_IDENTIFIER => PROVISIONING_PROFILE
