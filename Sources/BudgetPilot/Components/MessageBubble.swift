@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MessageBubble: View {
     let text: String
+    let isFromUser: Bool
     @State private var isExpanded = false
     @State private var fullHeight: CGFloat = 0
     @State private var collapsedHeight: CGFloat = 0
@@ -60,8 +61,8 @@ struct MessageBubble: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .glassEffect(.regular, in: .rect(cornerRadius: 25))
-        .padding(.leading, 60)
-        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(isFromUser ? .leading : .trailing, 60)
+        .frame(maxWidth: .infinity, alignment: isFromUser ? .trailing : .leading)
     }
 }
 
@@ -69,8 +70,14 @@ struct MessageBubble: View {
     ZStack {
         AppBackground()
         VStack(spacing: 8) {
-            MessageBubble(text: String(repeating: "Groceries at Migros and two train tickets. ", count: 8))
-            MessageBubble(text: "Hi")
+            MessageBubble(
+                text: String(repeating: "Groceries at Migros and two train tickets. ", count: 8),
+                isFromUser: false
+            )
+            MessageBubble(
+                text: "Hi",
+                isFromUser: true
+            )
         }
     }
 }
