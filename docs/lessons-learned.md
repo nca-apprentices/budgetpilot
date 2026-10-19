@@ -41,3 +41,9 @@ model notes hold for LLMs generally, or for Gemma 4 E2B-it specifically.
    `xcodegen` fail, and `sudo xcode-select -s` needs admin rights. Without
    sudo, set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` per
    command. `xcode-select -p` shows which one is active.
+4. **MLX does not run in the iOS Simulator.** It aborts with a libc++
+   hardening assertion (`basic_string(const char*) detected nullptr`) because
+   the simulator's Metal device has no architecture name. MLX's own
+   troubleshooting docs say so. `AssistantModel` throws under
+   `#if targetEnvironment(simulator)` before downloading the model; test the
+   assistant on a real device.

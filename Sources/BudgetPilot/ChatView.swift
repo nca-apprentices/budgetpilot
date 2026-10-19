@@ -4,6 +4,8 @@ struct ChatView: View {
     @State private var messages: [ChatMessage] = []
     @State private var selectedTab: AppTab = .chat
     @State private var assistant = AssistantModel()
+    /// Shown as a placeholder bubble while a reply is on its way.
+    @State private var pendingStatus: String?
 
     var body: some View {
         ZStack {
@@ -24,6 +26,9 @@ struct ChatView: View {
                             ForEach(messages) { message in
                                 MessageBubble(text: message.text, isFromUser: message.isFromUser)
                             }
+                            if let pendingStatus {
+                                PendingBubble(text: pendingStatus)
+                            }
                         }
                         .padding(.horizontal, 16)
                         .frame(maxWidth: .infinity)
@@ -39,7 +44,11 @@ struct ChatView: View {
             .safeAreaInset(edge: .bottom) {
                 ChatInputBar { text in
                     messages.append(ChatMessage(text: text, isFromUser: true))
+                    pendingStatus = assistant.isLoaded
+                        ? "Thinking…"
+                        : "Loading the model. The first time it downloads several GB, which can take a few minutes."
                     Task {
+                        defer { pendingStatus = nil }
                         do {
                             let reply = try await assistant.respond(to: text)
                             messages.append(ChatMessage(text: reply, isFromUser: false))
