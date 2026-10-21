@@ -9,5 +9,9 @@ xcrun simctl boot "$sim" 2>/dev/null || true
 # Simulator.app up to Xcode 26, DeviceHub.app from 27; the window is optional.
 open -b com.apple.iphonesimulator 2>/dev/null || open -b com.apple.dt.Devices 2>/dev/null || true
 
-xcrun simctl install booted .build/Build/Products/Debug-iphonesimulator/BudgetPilot.app
-xcrun simctl launch booted ch.nca.budgetpilot
+app=.build/Build/Products/Debug-iphonesimulator/BudgetPilot.app
+# Read the bundle id from the build, since project.local.yml may override it.
+bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")"
+
+xcrun simctl install booted "$app"
+xcrun simctl launch booted "$bundle_id"

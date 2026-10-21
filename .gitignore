@@ -36,3 +36,6 @@ fastlane/.env*
 # Written by XcodeGen alongside the project
 BudgetPilot-Info.plist
 BudgetPilot.entitlements
+
+# Personal XcodeGen overrides (signing team, bundle id)
+project.local.yml
