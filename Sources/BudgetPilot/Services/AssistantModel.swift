@@ -44,13 +44,13 @@ final class AssistantModel {
     init(incomeData: IncomeData = IncomeData()) {
         self.incomeData = incomeData
     }
-  
+
     /// Whether the model is in memory. Until then the first reply has to
     /// download and load several GB, which takes minutes.
     var isLoaded: Bool {
         container != nil
     }
-  
+
     /// Starts a new conversation. The loaded model is kept.
     func reset() {
         session = nil
