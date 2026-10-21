@@ -5,6 +5,17 @@ import MLXLLM
 import MLXLMCommon
 import Tokenizers
 
+enum AssistantError: LocalizedError {
+    case simulatorUnsupported
+
+    var errorDescription: String? {
+        switch self {
+        case .simulatorUnsupported:
+            "The on-device assistant needs a physical device; MLX doesn't run in the Simulator."
+        }
+    }
+}
+
 /// On-device budget assistant. Loads Gemma 4 with MLX on the first message
 /// and keeps one ChatSession across messages, so the model sees earlier turns.
 /// Call `reset()` to start a new conversation without reloading the model.
@@ -33,28 +44,40 @@ final class AssistantModel {
     init(incomeData: IncomeData = IncomeData()) {
         self.incomeData = incomeData
     }
-
+  
+    /// Whether the model is in memory. Until then the first reply has to
+    /// download and load several GB, which takes minutes.
+    var isLoaded: Bool {
+        container != nil
+    }
+  
     /// Starts a new conversation. The loaded model is kept.
     func reset() {
         session = nil
     }
 
     func respond(to text: String) async throws -> String {
-        let session = try await currentSession()
+        #if targetEnvironment(simulator)
+            // MLX aborts in the Simulator: its Metal device has no
+            // architecture name. Fail before downloading the model.
+            throw AssistantError.simulatorUnsupported
+        #else
+            let session = try await currentSession()
 
-        var reply = ""
-        // No toolDispatch: the call comes back to us instead of being run.
-        for try await generation in session.streamDetails(to: text) {
-            if let call = generation.toolCall {
-                let arguments = call.function.arguments.mapValues(\.anyValue)
-                guard let intent = BudgetIntent(name: call.function.name, arguments: arguments),
-                      intent.isBacked(by: text)
-                else { return "Sorry, I could not read the amount. How much was it?" }
-                return handle(intent)
+            var reply = ""
+            // No toolDispatch: the call comes back to us instead of being run.
+            for try await generation in session.streamDetails(to: text) {
+                if let call = generation.toolCall {
+                    let arguments = call.function.arguments.mapValues(\.anyValue)
+                    guard let intent = BudgetIntent(name: call.function.name, arguments: arguments),
+                          intent.isBacked(by: text)
+                    else { return "Sorry, I could not read the amount. How much was it?" }
+                    return handle(intent)
+                }
+                reply += generation.chunk ?? ""
             }
-            reply += generation.chunk ?? ""
-        }
-        return reply
+            return reply
+        #endif
     }
 
     /// Runs what can run right away and replies with text written by the
