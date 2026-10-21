@@ -5,6 +5,17 @@ import MLXLLM
 import MLXLMCommon
 import Tokenizers
 
+enum AssistantError: LocalizedError {
+    case simulatorUnsupported
+
+    var errorDescription: String? {
+        switch self {
+        case .simulatorUnsupported:
+            "The on-device assistant needs a physical device; MLX doesn't run in the Simulator."
+        }
+    }
+}
+
 /// On-device budget assistant. Loads Gemma 4 with MLX on the first message
 /// and keeps one chat session, so later replies remember the conversation.
 final class AssistantModel {
@@ -29,13 +40,25 @@ final class AssistantModel {
     - Choose the category by what the money is for, not by how often it is paid.
     """
 
+    /// Whether the model is in memory. Until then the first reply has to
+    /// download and load several GB, which takes minutes.
+    var isLoaded: Bool {
+        session != nil
+    }
+
     func respond(to text: String) async throws -> String {
-        if session == nil {
-            let container = try await #huggingFaceLoadModelContainer(
-                configuration: LLMRegistry.gemma4_e2b_it_4bit
-            )
-            session = ChatSession(container, instructions: instructions)
-        }
-        return try await session!.respond(to: text)
+        #if targetEnvironment(simulator)
+            // MLX aborts in the Simulator: its Metal device has no
+            // architecture name. Fail before downloading the model.
+            throw AssistantError.simulatorUnsupported
+        #else
+            if session == nil {
+                let container = try await #huggingFaceLoadModelContainer(
+                    configuration: LLMRegistry.gemma4_e2b_it_4bit
+                )
+                session = ChatSession(container, instructions: instructions)
+            }
+            return try await session!.respond(to: text)
+        #endif
     }
 }
