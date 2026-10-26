@@ -4,6 +4,8 @@ import SwiftUI
 struct ChatInputBar: View {
     @State private var text = ""
     @State private var selectedInputMode: InputMode = .addWithAI
+    /// False while the model loads or a reply is pending.
+    var canSend = true
     var onSend: (String) -> Void
 
     var body: some View {
@@ -18,7 +20,9 @@ struct ChatInputBar: View {
                         GlassIconButton(systemImage: "arrow.up", prominent: true) {
                             onSend(text)
                             text = ""
-                        }.accessibilityLabel("Send text")
+                        }
+                        .accessibilityLabel("Send text")
+                        .disabled(!canSend)
                     }
                 }
                 .animation(.default, value: text.isEmpty)
