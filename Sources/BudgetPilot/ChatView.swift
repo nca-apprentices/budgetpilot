@@ -64,6 +64,13 @@ struct ChatView: View {
                 .padding(.bottom, 8)
             }
         }
+        .task {
+            do {
+                try await assistant.load()
+            } catch {
+                messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
+            }
+        }
     }
 }
 
