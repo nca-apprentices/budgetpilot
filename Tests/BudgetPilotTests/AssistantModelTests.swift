@@ -5,6 +5,7 @@ struct AssistantModelTests {
     #if targetEnvironment(simulator)
         /// MLX crashes in the Simulator, so the model has to refuse up front
         /// instead of downloading and loading it.
+        @MainActor
         @Test
         func respondThrowsInSimulator() async {
             let model = AssistantModel()

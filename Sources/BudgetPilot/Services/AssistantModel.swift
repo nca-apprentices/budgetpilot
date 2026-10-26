@@ -17,33 +17,43 @@ enum AssistantError: LocalizedError {
 }
 
 /// On-device budget assistant. Loads Gemma 4 with MLX on the first message
-/// and keeps one chat session, so later replies remember the conversation.
+/// and keeps one ChatSession across messages, so the model sees earlier turns.
+/// Call `reset()` to start a new conversation without reloading the model.
+@MainActor
 final class AssistantModel {
+    private var container: ModelContainer?
     private var session: ChatSession?
+    private let incomeData: IncomeData
+
     private let instructions = """
     You are the budget assistant in the BudgetPilot app.
-    Help the user track expenses and understand their budget.
-
-    Rules:
-    - Answer briefly, in the language the user writes in.
-    - The currency is CHF.
-    - Only use amounts the user wrote. Never invent or estimate numbers.
-    - If the amount is missing, ask for it.
-    - Every expense has exactly one of these categories:
-      - housing: rent, utilities, electricity, internet, furniture
-      - groceries: supermarket, bakery, coffee and snacks
-      - transport: public transport tickets and passes (GA, Halbtax), fuel, taxi, parking
-      - leisure: hobbies, going out, restaurants, sports, electronics, travel
-      - health: doctor, dentist, pharmacy, health insurance
-      - subscriptions: streaming, apps, software, memberships
-      - other: anything that fits none of the above
-    - Choose the category by what the money is for, not by how often it is paid.
+    When the user tells you about something they bought, call add_expense.
+    When the user tells you their monthly income or salary, call set_income.
+    Only use amounts the user wrote. If the amount is missing, ask for it.
+    Otherwise answer briefly, in the language the user writes in. The currency is CHF.
     """
+
+    private let parameters = GenerateParameters(
+        maxTokens: 256, // short replies, stops runaway output
+        maxKVSize: 4096, // caps how much history is kept on device
+        temperature: 0.2, // steadier tool-call arguments
+        topP: 0.95,
+        topK: 64
+    )
+
+    init(incomeData: IncomeData = IncomeData()) {
+        self.incomeData = incomeData
+    }
 
     /// Whether the model is in memory. Until then the first reply has to
     /// download and load several GB, which takes minutes.
     var isLoaded: Bool {
-        session != nil
+        container != nil
+    }
+
+    /// Starts a new conversation. The loaded model is kept.
+    func reset() {
+        session = nil
     }
 
     func respond(to text: String) async throws -> String {
@@ -52,13 +62,58 @@ final class AssistantModel {
             // architecture name. Fail before downloading the model.
             throw AssistantError.simulatorUnsupported
         #else
-            if session == nil {
-                let container = try await #huggingFaceLoadModelContainer(
-                    configuration: LLMRegistry.gemma4_e2b_it_4bit
-                )
-                session = ChatSession(container, instructions: instructions)
+            let session = try await currentSession()
+
+            var reply = ""
+            // No toolDispatch: the call comes back to us instead of being run.
+            for try await generation in session.streamDetails(to: text) {
+                if let call = generation.toolCall {
+                    let arguments = call.function.arguments.mapValues(\.anyValue)
+                    guard let intent = BudgetIntent(name: call.function.name, arguments: arguments),
+                          intent.isBacked(by: text)
+                    else { return "Sorry, I could not read the amount. How much was it?" }
+                    return handle(intent)
+                }
+                reply += generation.chunk ?? ""
             }
-            return try await session!.respond(to: text)
+            return reply
         #endif
+    }
+
+    /// Runs what can run right away and replies with text written by the
+    /// app from checked values, never by the model.
+    func handle(_ intent: BudgetIntent) -> String {
+        switch intent {
+        case let .addExpense(title, amount, category):
+            return "Add: \(title), CHF \(amount), \(category.title)? (not saved yet)"
+        case let .setIncome(amount):
+            incomeData.monthlyIncome = amount
+            return "Saved your monthly income: CHF \(amount)."
+        }
+    }
+
+    // MARK: - Private
+
+    /// Creates the session on the first message, then reuses it.
+    private func currentSession() async throws -> ChatSession {
+        if let session {
+            return session
+        }
+
+        if container == nil {
+            container = try await #huggingFaceLoadModelContainer(
+                configuration: LLMRegistry.gemma4_e2b_it_4bit
+            )
+        }
+
+        let session = ChatSession(
+            container!,
+            instructions: instructions,
+            generateParameters: parameters,
+            additionalContext: ["enable_thinking": true],
+            tools: BudgetIntent.tools
+        )
+        self.session = session
+        return session
     }
 }

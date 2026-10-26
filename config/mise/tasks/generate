@@ -2,4 +2,10 @@
 #MISE description="Generate the Xcode project from project.yml"
 set -euo pipefail
 
-xcodegen generate
+# project.local.yml (not committed) includes project.yml and adds personal
+# signing settings; use it when it exists so they survive regeneration.
+if [ -f project.local.yml ]; then
+  xcodegen generate --spec project.local.yml
+else
+  xcodegen generate
+fi
