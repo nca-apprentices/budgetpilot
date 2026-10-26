@@ -4,6 +4,8 @@ struct ChatView: View {
     @State private var messages: [ChatMessage] = []
     @State private var selectedTab: AppTab = .chat
     @State private var assistant = AssistantModel()
+    /// Lets the user retry by sending after the model failed to load.
+    @State private var loadFailed = false
     /// Shown as a placeholder bubble while a reply is on its way.
     @State private var pendingStatus: String?
 
@@ -13,13 +15,18 @@ struct ChatView: View {
 
             VStack {
                 if messages.isEmpty {
-                    Text("How can I help you with your budget?")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding()
-                        .frame(maxHeight: .infinity)
+                    if !assistant.isLoaded {
+                        ModelLoadingView(progress: assistant.loadProgress)
+                            .frame(maxHeight: .infinity)
+                    } else {
+                        Text("How can I help you with your budget?")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding()
+                            .frame(maxHeight: .infinity)
+                    }
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 8) {
@@ -42,7 +49,7 @@ struct ChatView: View {
                     .padding(.top, 8)
             }
             .safeAreaInset(edge: .bottom) {
-                ChatInputBar { text in
+                ChatInputBar(canSend: (assistant.isLoaded || loadFailed) && pendingStatus == nil) { text in
                     messages.append(ChatMessage(text: text, isFromUser: true))
                     pendingStatus = assistant.isLoaded
                         ? "Thinking…"
@@ -69,6 +76,7 @@ struct ChatView: View {
                 try await assistant.load()
             } catch {
                 messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
+                loadFailed = true
             }
         }
     }
