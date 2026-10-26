@@ -41,6 +41,7 @@ final class AssistantModel {
     You are the budget assistant in the BudgetPilot app.
     When the user tells you about something they bought, call add_expense.
     When the user tells you their monthly income or salary, call set_income.
+    When the user asks what their income is, call get_income.
     Only use amounts the user wrote. If the amount is missing, ask for it.
     Otherwise answer briefly, in the language the user writes in. The currency is CHF.
     """
@@ -98,7 +99,7 @@ final class AssistantModel {
         #endif
     }
 
-    func respond(to text: String) async throws -> String {
+    func respond(to text: String) async throws -> ChatMessage {
         #if targetEnvironment(simulator)
             // MLX aborts in the Simulator: its Metal device has no
             // architecture name. Fail before downloading the model.
@@ -113,24 +114,34 @@ final class AssistantModel {
                     let arguments = call.function.arguments.mapValues(\.anyValue)
                     guard let intent = BudgetIntent(name: call.function.name, arguments: arguments),
                           intent.isBacked(by: text)
-                    else { return "Sorry, I could not read the amount. How much was it?" }
+                    else { return Self.reply("Sorry, I could not read the amount. How much was it?") }
                     return handle(intent)
                 }
                 reply += generation.chunk ?? ""
             }
-            return reply
+            return Self.reply(reply)
         #endif
     }
 
     /// Runs what can run right away and replies with text written by the
-    /// app from checked values, never by the model.
-    func handle(_ intent: BudgetIntent) -> String {
+    /// app from checked values, never by the model. A proposed expense comes
+    /// back on the message and is saved only when the user confirms it.
+    func handle(_ intent: BudgetIntent) -> ChatMessage {
         switch intent {
         case let .addExpense(title, amount, category):
-            return "Add: \(title), CHF \(amount), \(category.title)? (not saved yet)"
+            return ChatMessage(
+                text: "Add: \(title), CHF \(amount), \(category.title)?",
+                isFromUser: false,
+                proposedExpense: ProposedExpense(title: title, amount: amount, category: category)
+            )
         case let .setIncome(amount):
             incomeData.monthlyIncome = amount
-            return "Saved your monthly income: CHF \(amount)."
+            return Self.reply("Saved your monthly income: CHF \(amount).")
+        case .getIncome:
+            if let income = incomeData.monthlyIncome {
+                return Self.reply("Your monthly income is CHF \(income).")
+            }
+            return Self.reply("I don't know your monthly income yet. How much is it?")
         }
     }
 
@@ -153,5 +164,9 @@ final class AssistantModel {
         )
         self.session = session
         return session
+    }
+
+    private static func reply(_ text: String) -> ChatMessage {
+        ChatMessage(text: text, isFromUser: false)
     }
 }

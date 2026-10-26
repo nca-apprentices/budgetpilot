@@ -44,4 +44,22 @@ struct ExpenseTests {
         #expect(expenses.first?.amount == 190)
         #expect(expenses.first?.category == .transport)
     }
+
+    @Test
+    func savesAProposedExpense() throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: Expense.self, configurations: config)
+        let context = ModelContext(container)
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+
+        try ProposedExpense(title: "Halbtax", amount: 190, category: .transport).save(in: context, date: date)
+
+        let expenses = try context.fetch(FetchDescriptor<Expense>())
+        #expect(expenses.count == 1)
+        #expect(expenses.first?.title == "Halbtax")
+        #expect(expenses.first?.amount == 190)
+        #expect(expenses.first?.category == .transport)
+        #expect(expenses.first?.date == date)
+        #expect(expenses.first?.isCorrected == false)
+    }
 }

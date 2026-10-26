@@ -57,6 +57,36 @@ struct BudgetIntentTests {
         let reply = AssistantModel(incomeData: incomeData).handle(.setIncome(amount: 6500))
 
         #expect(incomeData.monthlyIncome == 6500)
-        #expect(reply == "Saved your monthly income: CHF 6500.")
+        #expect(reply.text == "Saved your monthly income: CHF 6500.")
+    }
+
+    @Test
+    func readsAnIncomeQuestion() throws {
+        let intent = try #require(BudgetIntent(name: "get_income", arguments: [:]))
+        #expect(intent == .getIncome)
+        #expect(intent.isBacked(by: "What is my income?"))
+    }
+
+    @Test @MainActor
+    func repliesWithTheSavedIncome() throws {
+        let suiteName = "BudgetIntentTests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let incomeData = IncomeData(defaults: defaults)
+        let assistant = AssistantModel(incomeData: incomeData)
+
+        #expect(assistant.handle(.getIncome).text == "I don't know your monthly income yet. How much is it?")
+
+        incomeData.monthlyIncome = 6500
+        #expect(assistant.handle(.getIncome).text == "Your monthly income is CHF 6500.")
+    }
+
+    @Test @MainActor
+    func proposesAnExpenseWithoutSavingIt() {
+        let reply = AssistantModel().handle(.addExpense(title: "Halbtax", amount: 190, category: .transport))
+
+        #expect(reply.text == "Add: Halbtax, CHF 190, Transport?")
+        #expect(reply.proposedExpense == ProposedExpense(title: "Halbtax", amount: 190, category: .transport))
+        #expect(!reply.isSaved)
     }
 }

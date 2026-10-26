@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ChatView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var messages: [ChatMessage] = []
     @State private var selectedTab: AppTab = .chat
     @State private var assistant = AssistantModel()
@@ -30,8 +31,13 @@ struct ChatView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 8) {
-                            ForEach(messages) { message in
+                            ForEach($messages) { $message in
                                 MessageBubble(text: message.text, isFromUser: message.isFromUser)
+                                if let expense = message.proposedExpense {
+                                    SaveExpenseButton(isSaved: message.isSaved) {
+                                        save(expense, from: $message)
+                                    }
+                                }
                             }
                             if let pendingStatus {
                                 PendingBubble(text: pendingStatus)
@@ -58,7 +64,7 @@ struct ChatView: View {
                         defer { pendingStatus = nil }
                         do {
                             let reply = try await assistant.respond(to: text)
-                            messages.append(ChatMessage(text: reply, isFromUser: false))
+                            messages.append(reply)
                         } catch {
                             messages.append(ChatMessage(
                                 text: "Error: \(error.localizedDescription)",
@@ -78,6 +84,18 @@ struct ChatView: View {
                 messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
                 loadFailed = true
             }
+        }
+    }
+
+    private func save(_ expense: ProposedExpense, from message: Binding<ChatMessage>) {
+        do {
+            try expense.save(in: modelContext)
+            message.wrappedValue.isSaved = true
+        } catch {
+            messages.append(ChatMessage(
+                text: "Error: \(error.localizedDescription)",
+                isFromUser: false
+            ))
         }
     }
 }
