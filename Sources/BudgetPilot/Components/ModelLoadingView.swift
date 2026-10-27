@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Download progress of the on-device model, shown while the app starts.
+/// At 100 % the download is done, but loading the model into memory still
+/// takes a few seconds, so the text switches to "Preparing".
 struct ModelLoadingView: View {
     let progress: Double
 
