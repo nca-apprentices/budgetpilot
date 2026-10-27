@@ -68,6 +68,12 @@ final class AssistantModel {
         session = nil
     }
 
+    /// Whether there's enough free memory to load the model. 0 means there's
+    /// no per-app limit, e.g. on the Mac.
+    nonisolated static func hasEnoughMemory(available: Int, required: Int) -> Bool {
+        available == 0 || available >= required
+    }
+
     /// Downloads and loads the model. Does nothing if it's already loaded.
     func load() async throws {
         #if targetEnvironment(simulator)
@@ -77,9 +83,8 @@ final class AssistantModel {
         #else
             guard container == nil else { return }
             // Running out of memory kills the app instead of throwing, so check first.
-            // The value is 0 where there's no per-app limit, e.g. on the Mac.
             let availableMemory = os_proc_available_memory()
-            if availableMemory > 0, availableMemory < requiredMemory {
+            if !Self.hasEnoughMemory(available: availableMemory, required: requiredMemory) {
                 throw AssistantError.notEnoughMemory
             }
             container = try await #huggingFaceLoadModelContainer(
