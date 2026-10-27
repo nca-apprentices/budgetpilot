@@ -28,4 +28,22 @@ struct AssistantModelTests {
             #expect(model.loadProgress == 0)
         }
     #endif
+
+    /// On the Mac there's no per-app limit, so loading is always allowed.
+    @Test
+    func hasEnoughMemoryWithoutLimit() {
+        #expect(AssistantModel.hasEnoughMemory(available: 0, required: 3_800_000_000))
+    }
+
+    /// With more free memory than the model needs, loading goes ahead.
+    @Test
+    func hasEnoughMemoryWithEnoughFree() {
+        #expect(AssistantModel.hasEnoughMemory(available: 5_000_000_000, required: 3_800_000_000))
+    }
+
+    /// With too little free memory, loading is refused instead of crashing.
+    @Test
+    func hasEnoughMemoryWithTooLittleFree() {
+        #expect(!AssistantModel.hasEnoughMemory(available: 2_000_000_000, required: 3_800_000_000))
+    }
 }
