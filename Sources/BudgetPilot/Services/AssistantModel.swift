@@ -4,20 +4,24 @@ import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
 import Observation
+import os
 import Tokenizers
 
 enum AssistantError: LocalizedError {
     case simulatorUnsupported
+    case notEnoughMemory
 
     var errorDescription: String? {
         switch self {
         case .simulatorUnsupported:
             "The on-device assistant needs a physical device; MLX doesn't run in the Simulator."
+        case .notEnoughMemory:
+            "Not enough free memory to load the assistant. Close other apps and try again."
         }
     }
 }
 
-/// On-device budget assistant. Loads Gemma 4 with MLX on the first message
+/// On-device budget assistant. Loads Gemma 4 with MLX when the app starts
 /// and keeps one ChatSession across messages, so the model sees earlier turns.
 /// Call `reset()` to start a new conversation without reloading the model.
 @Observable
@@ -27,9 +31,11 @@ final class AssistantModel {
     private var session: ChatSession?
     private let incomeData: IncomeData
 
-    // Download and load progress from 0 to 1, shown while the app starts.
-
+    /// Download and load progress from 0 to 1, shown while the app starts.
     private(set) var loadProgress: Double = 0
+
+    /// Free memory needed to load E2B. Loading peaks at about 3.64 GB on the Mac.
+    private let requiredMemory = 3_800_000_000
 
     private let instructions = """
     You are the budget assistant in the BudgetPilot app.
@@ -70,6 +76,12 @@ final class AssistantModel {
             throw AssistantError.simulatorUnsupported
         #else
             guard container == nil else { return }
+            // Running out of memory kills the app instead of throwing, so check first.
+            // The value is 0 where there's no per-app limit, e.g. on the Mac.
+            let availableMemory = os_proc_available_memory()
+            if availableMemory > 0, availableMemory < requiredMemory {
+                throw AssistantError.notEnoughMemory
+            }
             container = try await #huggingFaceLoadModelContainer(
                 configuration: LLMRegistry.gemma4_e2b_it_4bit,
                 progressHandler: { progress in
