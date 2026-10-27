@@ -38,3 +38,5 @@ must never be edited by hand.
 - SwiftLint and SwiftFormat cover `Sources/` and `Tests/`.
 - `main` is protected: someone else approves your pull request, CI has to
   pass.
+- Comments explain why or what the code can't show. Don't repeat the
+  name of the type, property or function.
