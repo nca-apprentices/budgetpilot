@@ -1,5 +1,6 @@
 @testable import BudgetPilot
 import Foundation
+import SwiftData
 import Testing
 
 struct BudgetIntentTests {
@@ -54,7 +55,7 @@ struct BudgetIntentTests {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let incomeData = IncomeData(defaults: defaults)
 
-        let reply = AssistantModel(incomeData: incomeData).handle(.setIncome(amount: 6500))
+        let reply = try AssistantModel(incomeData: incomeData).handle(.setIncome(amount: 6500), in: makeContext())
 
         #expect(incomeData.monthlyIncome == 6500)
         #expect(reply.text == "Saved your monthly income: CHF 6500.")
@@ -74,19 +75,104 @@ struct BudgetIntentTests {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let incomeData = IncomeData(defaults: defaults)
         let assistant = AssistantModel(incomeData: incomeData)
+        let context = try makeContext()
 
-        #expect(assistant.handle(.getIncome).text == "I don't know your monthly income yet. How much is it?")
+        let unknown = try assistant.handle(.getIncome, in: context)
+        #expect(unknown.text == "I don't know your monthly income yet. How much is it?")
 
         incomeData.monthlyIncome = 6500
-        #expect(assistant.handle(.getIncome).text == "Your monthly income is CHF 6500.")
+        #expect(try assistant.handle(.getIncome, in: context).text == "Your monthly income is CHF 6500.")
     }
 
     @Test @MainActor
-    func proposesAnExpenseWithoutSavingIt() {
-        let reply = AssistantModel().handle(.addExpense(title: "Halbtax", amount: 190, category: .transport))
+    func proposesAnExpenseWithoutSavingIt() throws {
+        let context = try makeContext()
+        let reply = try AssistantModel().handle(
+            .addExpense(title: "Halbtax", amount: 190, category: .transport), in: context
+        )
 
         #expect(reply.text == "Add: Halbtax, CHF 190, Transport?")
-        #expect(reply.proposedExpense == ProposedExpense(title: "Halbtax", amount: 190, category: .transport))
-        #expect(!reply.isSaved)
+        #expect(reply.proposal == .add(ProposedExpense(title: "Halbtax", amount: 190, category: .transport)))
+        #expect(!reply.isConfirmed)
+        #expect(try context.fetch(FetchDescriptor<Expense>()).isEmpty)
+    }
+
+    @Test
+    func readsASingleEdit() throws {
+        let intent = try #require(BudgetIntent(name: "edit_expense", arguments: ["match": "Coop", "amount": 48]))
+        #expect(intent == .editExpense(match: "Coop", title: nil, amount: 48, category: nil))
+    }
+
+    @Test
+    func readsAllEditsTogether() throws {
+        let intent = try #require(BudgetIntent(
+            name: "edit_expense",
+            arguments: ["match": " Coop ", "new_title": "Migros", "amount": 48, "category": "groceries"]
+        ))
+        #expect(intent == .editExpense(match: "Coop", title: "Migros", amount: 48, category: .groceries))
+    }
+
+    @Test
+    func rejectsInvalidEdits() {
+        #expect(BudgetIntent(name: "edit_expense", arguments: ["amount": 48]) == nil)
+        #expect(BudgetIntent(name: "edit_expense", arguments: ["match": " ", "amount": 48]) == nil)
+        #expect(BudgetIntent(name: "edit_expense", arguments: ["match": "Coop"]) == nil)
+        #expect(BudgetIntent(name: "edit_expense", arguments: ["match": "Coop", "amount": 0]) == nil)
+        #expect(BudgetIntent(name: "edit_expense", arguments: ["match": "Coop", "category": "food"]) == nil)
+    }
+
+    @Test
+    func checksTheAmountOfAnEdit() throws {
+        let amount = try #require(Decimal(string: "48.50"))
+        let edit = BudgetIntent.editExpense(match: "Coop", title: nil, amount: amount, category: nil)
+        #expect(edit.isBacked(by: "Coop was actually 48.50"))
+        #expect(!edit.isBacked(by: "Coop was more"))
+
+        let recategorized = BudgetIntent.editExpense(match: "Coop", title: nil, amount: nil, category: .leisure)
+        #expect(recategorized.isBacked(by: "Coop was leisure"))
+    }
+
+    @Test @MainActor
+    func proposesAnEditToTheNewestMatch() throws {
+        let context = try makeContext()
+        let older = Expense(
+            title: "Coop", amount: 30, category: .groceries, date: Date(timeIntervalSince1970: 1_800_000_000)
+        )
+        let newer = Expense(
+            title: "Coop City", amount: 45, category: .groceries, date: Date(timeIntervalSince1970: 1_800_100_000)
+        )
+        context.insert(older)
+        context.insert(newer)
+        try context.save()
+
+        let reply = try AssistantModel().handle(
+            .editExpense(match: "coop", title: nil, amount: 48, category: nil), in: context
+        )
+
+        #expect(reply.text.hasPrefix("Change Coop City ("))
+        #expect(reply.text.hasSuffix("): CHF 45 → CHF 48?"))
+        #expect(reply.proposal == .edit(ExpenseEdit(
+            expenseID: newer.persistentModelID, title: nil, amount: 48, category: nil
+        )))
+        #expect(newer.amount == 45)
+    }
+
+    @Test @MainActor
+    func repliesWhenNoExpenseMatches() throws {
+        let context = try makeContext()
+        context.insert(Expense(title: "Halbtax", amount: 190, category: .transport, date: .now))
+        try context.save()
+
+        let reply = try AssistantModel().handle(
+            .editExpense(match: "Coop", title: nil, amount: 48, category: nil), in: context
+        )
+
+        #expect(reply.text == "I couldn't find an expense called \"Coop\".")
+        #expect(reply.proposal == nil)
+    }
+
+    private func makeContext() throws -> ModelContext {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        return try ModelContext(ModelContainer(for: Expense.self, configurations: config))
     }
 }

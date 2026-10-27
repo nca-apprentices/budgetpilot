@@ -33,9 +33,13 @@ struct ChatView: View {
                         VStack(spacing: 8) {
                             ForEach($messages) { $message in
                                 MessageBubble(text: message.text, isFromUser: message.isFromUser)
-                                if let expense = message.proposedExpense {
-                                    SaveExpenseButton(isSaved: message.isSaved) {
-                                        save(expense, from: $message)
+                                if let proposal = message.proposal {
+                                    ConfirmButton(
+                                        title: proposal.confirmTitle,
+                                        doneTitle: proposal.doneTitle,
+                                        isDone: message.isConfirmed
+                                    ) {
+                                        confirm(proposal, from: $message)
                                     }
                                 }
                             }
@@ -63,7 +67,7 @@ struct ChatView: View {
                     Task {
                         defer { pendingStatus = nil }
                         do {
-                            let reply = try await assistant.respond(to: text)
+                            let reply = try await assistant.respond(to: text, in: modelContext)
                             messages.append(reply)
                         } catch {
                             messages.append(ChatMessage(
@@ -87,10 +91,13 @@ struct ChatView: View {
         }
     }
 
-    private func save(_ expense: ProposedExpense, from message: Binding<ChatMessage>) {
+    private func confirm(_ proposal: Proposal, from message: Binding<ChatMessage>) {
         do {
-            try expense.save(in: modelContext)
-            message.wrappedValue.isSaved = true
+            switch proposal {
+            case let .add(expense): try expense.save(in: modelContext)
+            case let .edit(edit): try edit.apply(in: modelContext)
+            }
+            message.wrappedValue.isConfirmed = true
         } catch {
             messages.append(ChatMessage(
                 text: "Error: \(error.localizedDescription)",

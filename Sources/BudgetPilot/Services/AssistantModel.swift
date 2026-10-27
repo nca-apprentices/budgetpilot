@@ -5,6 +5,7 @@ import MLXLLM
 import MLXLMCommon
 import Observation
 import os
+import SwiftData
 import Tokenizers
 
 enum AssistantError: LocalizedError {
@@ -27,7 +28,7 @@ enum AssistantError: LocalizedError {
 @Observable
 @MainActor
 final class AssistantModel {
-    private var container: ModelContainer?
+    private var container: MLXLMCommon.ModelContainer?
     private var session: ChatSession?
     private let incomeData: IncomeData
 
@@ -42,6 +43,7 @@ final class AssistantModel {
     When the user tells you about something they bought, call add_expense.
     When the user tells you their monthly income or salary, call set_income.
     When the user asks what their income is, call get_income.
+    When the user wants to change an expense they saved, call edit_expense.
     Only use amounts the user wrote. If the amount is missing, ask for it.
     Otherwise answer briefly, in the language the user writes in. The currency is CHF.
     """
@@ -99,7 +101,7 @@ final class AssistantModel {
         #endif
     }
 
-    func respond(to text: String) async throws -> ChatMessage {
+    func respond(to text: String, in context: SwiftData.ModelContext) async throws -> ChatMessage {
         #if targetEnvironment(simulator)
             // MLX aborts in the Simulator: its Metal device has no
             // architecture name. Fail before downloading the model.
@@ -115,7 +117,7 @@ final class AssistantModel {
                     guard let intent = BudgetIntent(name: call.function.name, arguments: arguments),
                           intent.isBacked(by: text)
                     else { return Self.reply("Sorry, I could not read the amount. How much was it?") }
-                    return handle(intent)
+                    return try handle(intent, in: context)
                 }
                 reply += generation.chunk ?? ""
             }
@@ -124,15 +126,15 @@ final class AssistantModel {
     }
 
     /// Runs what can run right away and replies with text written by the
-    /// app from checked values, never by the model. A proposed expense comes
-    /// back on the message and is saved only when the user confirms it.
-    func handle(_ intent: BudgetIntent) -> ChatMessage {
+    /// app from checked values, never by the model. Expenses and edits come
+    /// back as a proposal on the message and run only when the user confirms.
+    func handle(_ intent: BudgetIntent, in context: SwiftData.ModelContext) throws -> ChatMessage {
         switch intent {
         case let .addExpense(title, amount, category):
             return ChatMessage(
                 text: "Add: \(title), CHF \(amount), \(category.title)?",
                 isFromUser: false,
-                proposedExpense: ProposedExpense(title: title, amount: amount, category: category)
+                proposal: .add(ProposedExpense(title: title, amount: amount, category: category))
             )
         case let .setIncome(amount):
             incomeData.monthlyIncome = amount
@@ -142,6 +144,28 @@ final class AssistantModel {
                 return Self.reply("Your monthly income is CHF \(income).")
             }
             return Self.reply("I don't know your monthly income yet. How much is it?")
+        case let .editExpense(match, title, amount, category):
+            guard let expense = try latestExpense(matching: match, in: context) else {
+                return Self.reply("I couldn't find an expense called \"\(match)\".")
+            }
+            var changes: [String] = []
+            if let title {
+                changes.append("\(expense.title) → \(title)")
+            }
+            if let amount {
+                changes.append("CHF \(expense.amount) → CHF \(amount)")
+            }
+            if let category {
+                changes.append("\(expense.category.title) → \(category.title)")
+            }
+            let day = expense.date.formatted(.dateTime.day().month())
+            return ChatMessage(
+                text: "Change \(expense.title) (\(day)): \(changes.joined(separator: ", "))?",
+                isFromUser: false,
+                proposal: .edit(ExpenseEdit(
+                    expenseID: expense.persistentModelID, title: title, amount: amount, category: category
+                ))
+            )
         }
     }
 
@@ -164,6 +188,11 @@ final class AssistantModel {
         )
         self.session = session
         return session
+    }
+
+    private func latestExpense(matching match: String, in context: SwiftData.ModelContext) throws -> Expense? {
+        let descriptor = FetchDescriptor<Expense>(sortBy: [SortDescriptor(\.date, order: .reverse)])
+        return try context.fetch(descriptor).first { $0.title.localizedStandardContains(match) }
     }
 
     private static func reply(_ text: String) -> ChatMessage {
