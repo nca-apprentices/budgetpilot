@@ -3,27 +3,39 @@ import HuggingFace
 import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
+import Observation
+import os
 import Tokenizers
 
 enum AssistantError: LocalizedError {
     case simulatorUnsupported
+    case notEnoughMemory
 
     var errorDescription: String? {
         switch self {
         case .simulatorUnsupported:
             "The on-device assistant needs a physical device; MLX doesn't run in the Simulator."
+        case .notEnoughMemory:
+            "Not enough free memory to load the assistant. Close other apps and try again."
         }
     }
 }
 
-/// On-device budget assistant. Loads Gemma 4 with MLX on the first message
+/// On-device budget assistant. Loads Gemma 4 with MLX when the app starts
 /// and keeps one ChatSession across messages, so the model sees earlier turns.
 /// Call `reset()` to start a new conversation without reloading the model.
+@Observable
 @MainActor
 final class AssistantModel {
     private var container: ModelContainer?
     private var session: ChatSession?
     private let incomeData: IncomeData
+
+    /// Download and load progress from 0 to 1, shown while the app starts.
+    private(set) var loadProgress: Double = 0
+
+    /// Free memory needed to load E2B. Loading peaks at about 3.64 GB on the Mac.
+    private let requiredMemory = 3_800_000_000
 
     private let instructions = """
     You are the budget assistant in the BudgetPilot app.
@@ -54,6 +66,36 @@ final class AssistantModel {
     /// Starts a new conversation. The loaded model is kept.
     func reset() {
         session = nil
+    }
+
+    /// Whether there's enough free memory to load the model. 0 means there's
+    /// no per-app limit, e.g. on the Mac.
+    nonisolated static func hasEnoughMemory(available: Int, required: Int) -> Bool {
+        available == 0 || available >= required
+    }
+
+    /// Downloads and loads the model. Does nothing if it's already loaded.
+    func load() async throws {
+        #if targetEnvironment(simulator)
+            // MLX aborts in the Simulator: its Metal device has no
+            // architecture name. Fail before downloading the model.
+            throw AssistantError.simulatorUnsupported
+        #else
+            guard container == nil else { return }
+            // Running out of memory kills the app instead of throwing, so check first.
+            let availableMemory = os_proc_available_memory()
+            if !Self.hasEnoughMemory(available: availableMemory, required: requiredMemory) {
+                throw AssistantError.notEnoughMemory
+            }
+            container = try await #huggingFaceLoadModelContainer(
+                configuration: LLMRegistry.gemma4_e2b_it_4bit,
+                progressHandler: { progress in
+                    Task { @MainActor in
+                        self.loadProgress = progress.fractionCompleted
+                    }
+                }
+            )
+        #endif
     }
 
     func respond(to text: String) async throws -> String {
@@ -100,11 +142,7 @@ final class AssistantModel {
             return session
         }
 
-        if container == nil {
-            container = try await #huggingFaceLoadModelContainer(
-                configuration: LLMRegistry.gemma4_e2b_it_4bit
-            )
-        }
+        try await load()
 
         let session = ChatSession(
             container!,
