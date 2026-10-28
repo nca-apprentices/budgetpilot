@@ -84,6 +84,33 @@ targets:
     scheme:
       testTargets:
         - BudgetPilotTests
+  # Scores the assistant's prompt and tools against the real model on this
+  # Mac's GPU (`mise run eval`); MLX doesn't run in the Simulator.
+  AssistantEval:
+    type: tool
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - Sources/AssistantEval
+      - Sources/BudgetPilot/Assistant
+      - Sources/BudgetPilot/Models/ExpenseCategory.swift
+      - Sources/BudgetPilot/Theme/Color+App.swift
+    dependencies:
+      - package: MLXSwiftLM
+        product: MLXLLM
+      - package: MLXSwiftLM
+        product: MLXLMCommon
+      - package: MLXSwiftLM
+        product: MLXHuggingFace
+      - package: SwiftHuggingFace
+        product: HuggingFace
+      - package: SwiftTransformers
+        product: Tokenizers
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+        CODE_SIGNING_ALLOWED: NO
+    scheme: {}
   BudgetPilotTests:
     type: bundle.unit-test
     platform: iOS

@@ -67,8 +67,8 @@ struct ChatView: View {
                     Task {
                         defer { pendingStatus = nil }
                         do {
-                            let reply = try await assistant.respond(to: text, in: modelContext)
-                            messages.append(reply)
+                            let replies = try await assistant.respond(to: text, in: modelContext)
+                            messages.append(contentsOf: replies)
                         } catch {
                             messages.append(ChatMessage(
                                 text: "Error: \(error.localizedDescription)",

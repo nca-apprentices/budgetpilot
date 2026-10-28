@@ -29,6 +29,25 @@ model notes hold for LLMs generally, or for Gemma 4 E2B-it specifically.
    thinking and raise the output limit together.
 10. **Thinking mode did not improve image understanding** in our tests.
     Measure before assuming.
+11. **Tune the assistant on the Mac, not the phone.** `mise run eval` runs
+    the app's prompt, tools and `BudgetIntent` checks against Gemma 4 E2B on
+    the Mac's GPU in about a second per message; `-- --chat` talks to it
+    live. The phone is still the place to check speed and memory.
+12. **Stopping the stream at a tool call erases the turn.** `ChatSession`
+    then rolls the whole turn back, so the model never knew what it had
+    added and "the lunch was 23.50" had nothing to refer to. Read the stream
+    to the end and send the app's reply as the tool result with the next
+    message.
+13. **Small wording changes flip whole cases.** One clause fixed one case and
+    broke another, and examples written like calls (`add_expense(...)`) made
+    the model print calls as text. Judge a prompt on messages it was not
+    tuned on, not only on the fixed cases.
+14. **"Needs title, amount and category" makes the model ask for the
+    category.** Making `category` optional (the app files it under other)
+    and saying "never ask for a category" fixed it.
+15. **Gemma 4's thinking text has no parser in mlx-swift-lm.** With thinking
+    on, `<|channel>thought…<channel|>` lands in replies, and it was about
+    five times slower for no better tool calls. It is off.
 
 ## This repo
 

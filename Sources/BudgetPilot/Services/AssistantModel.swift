@@ -30,6 +30,9 @@ enum AssistantError: LocalizedError {
 final class AssistantModel {
     private var container: MLXLMCommon.ModelContainer?
     private var session: ChatSession?
+    /// The last tool calls and the app's replies to them, sent as tool
+    /// results ahead of the next message, so the model knows what happened.
+    private var pendingToolResults: [(tool: String, reply: String)] = []
     private let incomeData: IncomeData
 
     /// Download and load progress from 0 to 1, shown while the app starts.
@@ -37,24 +40,6 @@ final class AssistantModel {
 
     /// Free memory needed to load E2B. Loading peaks at about 3.64 GB on the Mac.
     private let requiredMemory = 3_800_000_000
-
-    private let instructions = """
-    You are the budget assistant in the BudgetPilot app.
-    When the user tells you about something they bought, call add_expense.
-    When the user tells you their monthly income or salary, call set_income.
-    When the user asks what their income is, call get_income.
-    When the user wants to change an expense they saved, call edit_expense.
-    Only use amounts the user wrote. If the amount is missing, ask for it.
-    Otherwise answer briefly, in the language the user writes in. The currency is CHF.
-    """
-
-    private let parameters = GenerateParameters(
-        maxTokens: 256, // short replies, stops runaway output
-        maxKVSize: 4096, // caps how much history is kept on device
-        temperature: 0.2, // steadier tool-call arguments
-        topP: 0.95,
-        topK: 64
-    )
 
     init(incomeData: IncomeData = IncomeData()) {
         self.incomeData = incomeData
@@ -69,6 +54,7 @@ final class AssistantModel {
     /// Starts a new conversation. The loaded model is kept.
     func reset() {
         session = nil
+        pendingToolResults = []
     }
 
     /// Whether there's enough free memory to load the model. 0 means there's
@@ -101,7 +87,7 @@ final class AssistantModel {
         #endif
     }
 
-    func respond(to text: String, in context: SwiftData.ModelContext) async throws -> ChatMessage {
+    func respond(to text: String, in context: SwiftData.ModelContext) async throws -> [ChatMessage] {
         #if targetEnvironment(simulator)
             // MLX aborts in the Simulator: its Metal device has no
             // architecture name. Fail before downloading the model.
@@ -109,20 +95,48 @@ final class AssistantModel {
         #else
             let session = try await currentSession()
 
-            var reply = ""
-            // No toolDispatch: the call comes back to us instead of being run.
-            for try await generation in session.streamDetails(to: text) {
-                if let call = generation.toolCall {
-                    let arguments = call.function.arguments.mapValues(\.anyValue)
-                    guard let intent = BudgetIntent(name: call.function.name, arguments: arguments),
-                          intent.isBacked(by: text)
-                    else { return Self.reply("Sorry, I could not read the amount. How much was it?") }
-                    return try handle(intent, in: context)
-                }
-                reply += generation.chunk ?? ""
+            let stream = if pendingToolResults.isEmpty {
+                session.streamDetails(to: text)
+            } else {
+                session.streamDetails(to: pendingToolResults.map { .tool($0.reply, name: $0.tool) } + [.user(text)])
             }
-            return Self.reply(reply)
+            pendingToolResults = []
+
+            var answer = ""
+            var calls: [(name: String, arguments: [String: Any])] = []
+            // No toolDispatch: the calls come back to us instead of being run.
+            // Read to the end: stopping early makes ChatSession drop the turn,
+            // and the model then can't tell what "the lunch" refers to.
+            for try await generation in stream {
+                if let call = generation.toolCall {
+                    calls.append((call.function.name, call.function.arguments.mapValues(\.anyValue)))
+                } else if calls.isEmpty {
+                    answer += generation.chunk ?? ""
+                }
+            }
+            if calls.isEmpty, let written = WrittenToolCall(answer) {
+                return try [reply(toCall: written.name, arguments: written.arguments, from: text, in: context)]
+            }
+            guard !calls.isEmpty else { return [Self.reply(answer)] }
+
+            // "Coop 30 and SBB 12" comes as two calls: one proposal each.
+            return try calls.map { call in
+                let message = try reply(toCall: call.name, arguments: call.arguments, from: text, in: context)
+                pendingToolResults.append((call.name, message.text))
+                return message
+            }
         #endif
+    }
+
+    /// Checks a call against the user's message, then handles it, or asks
+    /// the user when the app won't act on it.
+    func reply(
+        toCall name: String, arguments: [String: Any], from text: String, in context: SwiftData.ModelContext
+    ) throws -> ChatMessage {
+        switch BudgetIntent.checked(name: name, arguments: arguments, message: text) {
+        case let .success(intent): try handle(intent, in: context)
+        case let .failure(rejection): Self.reply(rejection.question)
+        }
     }
 
     /// Runs what can run right away and replies with text written by the
@@ -145,27 +159,14 @@ final class AssistantModel {
             }
             return Self.reply("I don't know your monthly income yet. How much is it?")
         case let .editExpense(match, title, amount, category):
-            guard let expense = try latestExpense(matching: match, in: context) else {
-                return Self.reply("I couldn't find an expense called \"\(match)\".")
-            }
-            var changes: [String] = []
-            if let title {
-                changes.append("\(expense.title) → \(title)")
-            }
-            if let amount {
-                changes.append("CHF \(expense.amount) → CHF \(amount)")
-            }
-            if let category {
-                changes.append("\(expense.category.title) → \(category.title)")
-            }
-            let day = expense.date.formatted(.dateTime.day().month())
-            return ChatMessage(
-                text: "Change \(expense.title) (\(day)): \(changes.joined(separator: ", "))?",
-                isFromUser: false,
-                proposal: .edit(ExpenseEdit(
-                    expenseID: expense.persistentModelID, title: title, amount: amount, category: category
-                ))
-            )
+            return try proposeEdit(of: match, title: title, amount: amount, category: category, in: context)
+        // The model understands these already (issue 57); the app can't act on them yet.
+        case .deleteExpense:
+            return Self.reply("I can't delete expenses yet.")
+        case .setFixedCosts:
+            return Self.reply("I can't save fixed costs yet.")
+        case .getBudget:
+            return Self.reply("I can't show what is left yet.")
         }
     }
 
@@ -181,18 +182,50 @@ final class AssistantModel {
 
         let session = ChatSession(
             container!,
-            instructions: instructions,
-            generateParameters: parameters,
-            additionalContext: ["enable_thinking": true],
+            instructions: AssistantSetup.instructions,
+            generateParameters: AssistantSetup.parameters,
+            additionalContext: AssistantSetup.additionalContext,
             tools: BudgetIntent.tools
         )
         self.session = session
         return session
     }
 
+    /// Finds the newest expense matching the user's words and proposes the change.
+    private func proposeEdit(
+        of match: String, title: String?, amount: Decimal?, category: ExpenseCategory?,
+        in context: SwiftData.ModelContext
+    ) throws -> ChatMessage {
+        guard let expense = try latestExpense(matching: match, in: context) else {
+            return Self.reply("I couldn't find an expense called \"\(match)\".")
+        }
+        var changes: [String] = []
+        if let title {
+            changes.append("\(expense.title) → \(title)")
+        }
+        if let amount {
+            changes.append("CHF \(expense.amount) → CHF \(amount)")
+        }
+        if let category {
+            changes.append("\(expense.category.title) → \(category.title)")
+        }
+        let day = expense.date.formatted(.dateTime.day().month())
+        return ChatMessage(
+            text: "Change \(expense.title) (\(day)): \(changes.joined(separator: ", "))?",
+            isFromUser: false,
+            proposal: .edit(ExpenseEdit(
+                expenseID: expense.persistentModelID, title: title, amount: amount, category: category
+            ))
+        )
+    }
+
     private func latestExpense(matching match: String, in context: SwiftData.ModelContext) throws -> Expense? {
         let descriptor = FetchDescriptor<Expense>(sortBy: [SortDescriptor(\.date, order: .reverse)])
-        return try context.fetch(descriptor).first { $0.title.localizedStandardContains(match) }
+        // Either way round, so "cinema tickets" also finds "Cinema" and
+        // "Coop Einkauf" finds "Coop": the model often keeps extra words.
+        return try context.fetch(descriptor).first {
+            $0.title.localizedStandardContains(match) || match.localizedStandardContains($0.title)
+        }
     }
 
     private static func reply(_ text: String) -> ChatMessage {
