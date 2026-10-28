@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ChatView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var messages: [ChatMessage] = []
     @State private var selectedTab: AppTab = .chat
     @State private var assistant = AssistantModel()
@@ -30,8 +31,17 @@ struct ChatView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 8) {
-                            ForEach(messages) { message in
+                            ForEach($messages) { $message in
                                 MessageBubble(text: message.text, isFromUser: message.isFromUser)
+                                if let proposal = message.proposal {
+                                    ConfirmButton(
+                                        title: proposal.confirmTitle,
+                                        doneTitle: proposal.doneTitle,
+                                        isDone: message.isConfirmed
+                                    ) {
+                                        confirm(proposal, from: $message)
+                                    }
+                                }
                             }
                             if let pendingStatus {
                                 PendingBubble(text: pendingStatus)
@@ -57,8 +67,8 @@ struct ChatView: View {
                     Task {
                         defer { pendingStatus = nil }
                         do {
-                            let reply = try await assistant.respond(to: text)
-                            messages.append(ChatMessage(text: reply, isFromUser: false))
+                            let replies = try await assistant.respond(to: text, in: modelContext)
+                            messages.append(contentsOf: replies)
                         } catch {
                             messages.append(ChatMessage(
                                 text: "Error: \(error.localizedDescription)",
@@ -78,6 +88,21 @@ struct ChatView: View {
                 messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
                 loadFailed = true
             }
+        }
+    }
+
+    private func confirm(_ proposal: Proposal, from message: Binding<ChatMessage>) {
+        do {
+            switch proposal {
+            case let .add(expense): try expense.save(in: modelContext)
+            case let .edit(edit): try edit.apply(in: modelContext)
+            }
+            message.wrappedValue.isConfirmed = true
+        } catch {
+            messages.append(ChatMessage(
+                text: "Error: \(error.localizedDescription)",
+                isFromUser: false
+            ))
         }
     }
 }

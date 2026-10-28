@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Score the assistant's prompt and tools against the model on this Mac"
+#MISE depends=["generate"]
+set -euo pipefail
+
+# MLX needs a real Metal GPU, so this runs on macOS, not in the Simulator.
+# The first run downloads the model (~3 GB). Arguments go to the tool, e.g.
+# `mise run eval -- --runs 3`; the flags are listed in Sources/AssistantEval/main.swift.
+xcodebuild build -scheme AssistantEval -destination 'platform=macOS' -derivedDataPath .build -skipMacroValidation -quiet
+.build/Build/Products/Debug/AssistantEval "$@"
