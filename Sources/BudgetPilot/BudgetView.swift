@@ -12,7 +12,7 @@ struct BudgetView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 4) {
                     Text("Available budget ·")
@@ -37,6 +37,13 @@ struct BudgetView: View {
                 .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 8) {
+                BudgetTile(title: "Income", amount: summary.income)
+                BudgetTile(title: "Fixed costs", amount: summary.fixedCosts)
+                BudgetTile(title: "Expenses", amount: summary.spent)
+            }
+
             Spacer()
         }
         .padding(.horizontal, 16)
