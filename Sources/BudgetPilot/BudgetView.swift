@@ -9,7 +9,6 @@ struct BudgetView: View {
 
     var body: some View {
         ZStack {
-            AppBackground()
             Text(summary.available, format: .currency(code: "CHF"))
         }
     }
