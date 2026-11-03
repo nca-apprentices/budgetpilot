@@ -19,15 +19,15 @@ struct ChatView: View {
                     if messages.isEmpty {
                         if !assistant.isLoaded {
                             ModelLoadingView(progress: assistant.loadProgress)
-                            .frame(maxHeight: .infinity)
+                                .frame(maxHeight: .infinity)
                         } else {
                             Text("How can I help you with your budget?")
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding()
-                                    .frame(maxHeight: .infinity)
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                                .frame(maxHeight: .infinity)
                         }
                     } else {
                         ScrollView(showsIndicators: false) {
@@ -48,23 +48,23 @@ struct ChatView: View {
                                     PendingBubble(text: pendingStatus)
                                 }
                             }
-                                    .padding(.horizontal, 16)
-                                    .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 16)
+                            .frame(maxWidth: .infinity)
                         }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .defaultScrollAnchor(.bottom)
-                                .scrollEdgeEffectStyle(.hard, for: .top)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .defaultScrollAnchor(.bottom)
+                        .scrollEdgeEffectStyle(.hard, for: .top)
                     }
                 } else {
                     BudgetView()
                 }
             }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .safeAreaInset(edge: .top) {
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .safeAreaInset(edge: .top) {
                 TopBar(selection: $selectedTab)
-                .padding(.top, 8)
+                    .padding(.top, 8)
             }
-                    .safeAreaInset(edge: .bottom) {
+            .safeAreaInset(edge: .bottom) {
                 if selectedTab == .chat {
                     ChatInputBar(canSend: (assistant.isLoaded || loadFailed) && pendingStatus == nil) { text in
                         messages.append(ChatMessage(text: text, isFromUser: true))
@@ -84,8 +84,8 @@ struct ChatView: View {
                             }
                         }
                     }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 8)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
                 }
             }
         }
