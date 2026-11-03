@@ -48,6 +48,8 @@ targets:
         CFBundleIconName: AppIcon
         UILaunchScreen: {}
         ITSAppUsesNonExemptEncryption: false
+        # Forced until there is a dark design; theme colours are light only.
+        UIUserInterfaceStyle: Light
         # Taken from the build settings so fastlane can override them per
         # release; hardcoding them would send build number 1 every time.
         CFBundleShortVersionString: $(MARKETING_VERSION)
