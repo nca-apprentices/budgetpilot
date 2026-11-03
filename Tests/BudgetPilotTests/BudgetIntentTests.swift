@@ -243,6 +243,14 @@ struct BudgetIntentTests {
         #expect(intent.isBacked(by: "how much is left?"))
     }
 
+    @Test
+    func readsAnExpenseListWithAndWithoutMatch() throws {
+        let named = try #require(BudgetIntent(name: "get_expenses", arguments: ["match": " Coop "]))
+        #expect(named == .getExpenses(match: "Coop"))
+        #expect(named.isBacked(by: "what did I buy at Coop?"))
+        #expect(BudgetIntent(name: "get_expenses", arguments: [:]) == .getExpenses(match: nil))
+    }
+
     /// The model understands these already; the app can't act on them yet.
     @Test @MainActor
     func repliesThatDeleteFixedCostsAndBudgetAreNotThereYet() throws {

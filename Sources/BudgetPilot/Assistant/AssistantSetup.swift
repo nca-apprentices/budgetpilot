@@ -28,8 +28,10 @@ enum AssistantSetup {
     1920" or "Fixkosten 2'100". A single bill like rent, Miete, Krankenkasse, an Abo or a phone plan is an \
     expense: use add_expense.
     - get_income: the user asks what their income or salary is.
+    - get_expenses: the user wants to see their expenses or what they bought somewhere, e.g. "show my \
+    expenses", "what did I buy at Coop?", "zeig mer mini usgabe". Pass match only for a named expense.
     - get_budget: any other question about their money: how much is left (also in Swiss German, "wievill han \
-    i no?"), what they spent, on what, what most, where the money went, or whether they can afford \
+    i no?"), how much they spent in total, what most, where the money went, or whether they can afford \
     something. Never ask for their income, budget or a time period.
 
     For match, use only the name of the expense, e.g. "Coop", not "the Coop purchase" or "yesterday's Coop".

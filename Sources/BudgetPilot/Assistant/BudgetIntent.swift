@@ -12,6 +12,7 @@ enum BudgetIntent: Equatable {
     case deleteExpense(match: String)
     case setFixedCosts(amount: Decimal)
     case getBudget
+    case getExpenses(match: String?)
 
     /// The tools the model may, call, one, per intent.
     static let tools: [ToolSpec] = [
@@ -89,6 +90,22 @@ enum BudgetIntent: Equatable {
             """,
             parameters: []
         ) { _ in "" }.schema,
+
+        Tool<[String: String], String>(
+            name: "get_expenses",
+            description: """
+            List the user's expenses this month, or only those with a given name, e.g. "show my expenses", \
+            "what did I buy at Coop?", "zeig mer mini usgabe". Not for what is left.
+            """,
+            parameters: [
+                .optional("match", type: .string,
+                          description: "The name of the expense only, e.g. Coop; leave out for all"),
+                .optional("period", type: .string,
+                          description: "Only if the user names a time, e.g. last week",
+                          extraProperties: ["enum": ["today", "yesterday", "this_week", "last_week", "this_month", "last_month"]]),
+                         
+            ]
+        ) { _ in "" }.schema,
     ]
 
     /// Reads a tool call, or nil if the model called something unknown or
@@ -102,6 +119,7 @@ enum BudgetIntent: Equatable {
         case "set_fixed_costs": Self.positiveAmount(in: arguments).map { .setFixedCosts(amount: $0) }
         case "get_income": .getIncome
         case "get_budget": .getBudget
+        case "get_expenses": .getExpenses(match: Self.match(in: arguments))
         default: nil
         }
         guard let intent else { return nil }
@@ -116,7 +134,7 @@ enum BudgetIntent: Equatable {
         case let .addExpense(_, value, _): amount = value
         case let .setIncome(value): amount = value
         case let .setFixedCosts(value): amount = value
-        case .getIncome, .getBudget, .deleteExpense: return true
+        case .getIncome, .getBudget, .getExpenses, .deleteExpense: return true
         case let .editExpense(_, _, value?, _): amount = value
         case .editExpense: return true
         }

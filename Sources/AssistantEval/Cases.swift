@@ -105,6 +105,10 @@ let cases: [EvalCase] = [
     EvalCase("left-ch", "wievill han i no?", expect: .call("get_budget")),
     EvalCase("get-en", "What is my income?", expect: .call("get_income")),
     EvalCase("get-de", "Wie viel verdiene ich?", expect: .call("get_income")),
+    EvalCase("list-en", "show my expenses", expect: .call("get_expenses")),
+    EvalCase("list-match", "what did I buy at Coop?", expect: .call("get_expenses")),
+    EvalCase("list-ch", "zeig mer mini usgabe", expect: .call("get_expenses")),
+    EvalCase("list-fr", "montre-moi mes dépenses", expect: .call("get_expenses")),
 
     // Chat
     EvalCase("chat-tip", "How can I save money on groceries?", expect: .reply),
