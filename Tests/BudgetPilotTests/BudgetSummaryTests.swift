@@ -33,4 +33,12 @@ struct BudgetSummaryTests {
 
         #expect(summary.spentPercent == 0)
     }
+
+    @Test
+    func spentPercentDividesSpentByBudget() {
+        let expense = Expense(title: "Computer", amount: 1500, category: .leisure, date: now)
+        let summary = BudgetSummary(income: 5000, fixedCosts: 2000, expenses: [expense], now: now)
+
+        #expect(summary.spentPercent == 0.5)
+    }
 }
