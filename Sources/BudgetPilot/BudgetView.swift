@@ -44,6 +44,18 @@ struct BudgetView: View {
                 BudgetTile(title: "Expenses", amount: summary.spent)
             }
 
+            Text("Recent expenses")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            VStack(spacing: 12) {
+                ForEach(expenses.prefix(5)) { expense in
+                    ExpenseRow(expense: expense)
+                }
+            }
+            .padding(16)
+            .glassEffect(.regular, in: .rect(cornerRadius: 25))
+
             Spacer()
         }
         .padding(.horizontal, 16)
