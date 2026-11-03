@@ -4,7 +4,7 @@ import SwiftUI
 struct BudgetView: View {
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
     private var summary: BudgetSummary {
-        BudgetSummary(income: IncomeData().monthlyIncome ?? 0, fixedCosts: 100, expenses: expenses, now: .now)
+        BudgetSummary(income: IncomeData().monthlyIncome ?? 0, fixedCosts: 0, expenses: expenses, now: .now)
     }
 
     private var freePercent: Double {
