@@ -1,4 +1,5 @@
 @testable import BudgetPilot
+import SwiftData
 import Testing
 
 struct AssistantModelTests {
@@ -7,10 +8,14 @@ struct AssistantModelTests {
         /// instead of downloading and loading it.
         @MainActor
         @Test
-        func respondThrowsInSimulator() async {
+        func respondThrowsInSimulator() async throws {
             let model = AssistantModel()
+            let container = try ModelContainer(
+                for: Expense.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+            )
             await #expect(throws: AssistantError.simulatorUnsupported) {
-                try await model.respond(to: "Hi")
+                try await model.respond(to: "Hi", in: container.mainContext)
             }
             #expect(!model.isLoaded)
         }

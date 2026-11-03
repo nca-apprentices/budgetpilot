@@ -13,6 +13,7 @@ mise run test     # run unit tests
 mise run lint     # SwiftLint
 mise run format   # SwiftFormat, writes changes
 mise run run      # build, boot a simulator and launch the app
+mise run eval     # run the assistant against the real model on this Mac
 ```
 
 `mise tasks` lists the rest. Run `format` and `test` before opening a pull
@@ -24,6 +25,7 @@ request; CI runs the same tasks.
 | --- | --- |
 | `project.yml` | XcodeGen definition — the only place to change build settings |
 | `Sources/BudgetPilot/` | app code; `Components/` for views, `Theme/` for the palette |
+| `Sources/AssistantEval/` | macOS tool behind `mise run eval`: scored cases, or `-- --chat` to talk to the model |
 | `Tests/BudgetPilotTests/` | unit tests |
 | `config/mise/tasks/` | one script per task |
 
