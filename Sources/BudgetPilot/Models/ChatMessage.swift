@@ -12,11 +12,13 @@ struct ChatMessage: Identifiable {
 enum Proposal: Equatable {
     case add(ProposedExpense)
     case edit(ExpenseEdit)
+    case delete(ExpenseDeletion)
 
     var confirmTitle: String {
         switch self {
         case .add: "Save"
         case .edit: "Apply"
+        case .delete: "Delete"
         }
     }
 
@@ -24,6 +26,7 @@ enum Proposal: Equatable {
         switch self {
         case .add: "Saved"
         case .edit: "Changed"
+        case .delete: "Deleted"
         }
     }
 }

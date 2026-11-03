@@ -160,9 +160,11 @@ final class AssistantModel {
             return Self.reply("I don't know your monthly income yet. How much is it?")
         case let .editExpense(match, title, amount, category):
             return try proposeEdit(of: match, title: title, amount: amount, category: category, in: context)
+        case let .getExpenses(match):
+            return try listExpenses(matching: match, in: context)
+        case let .deleteExpense(match):
+            return try proposeDeletion(of: match, in: context)
         // The model understands these already (issue 57); the app can't act on them yet.
-        case .deleteExpense:
-            return Self.reply("I can't delete expenses yet.")
         case .setFixedCosts:
             return Self.reply("I can't save fixed costs yet.")
         case .getBudget:
@@ -219,11 +221,50 @@ final class AssistantModel {
         )
     }
 
+    /// Finds the newest expense matching the user's words and proposes removing it.
+    private func proposeDeletion(of match: String, in context: SwiftData.ModelContext) throws -> ChatMessage {
+        guard let expense = try latestExpense(matching: match, in: context) else {
+            return Self.reply("I couldn't find an expense called \"\(match)\".")
+        }
+        let day = expense.date.formatted(.dateTime.day().month())
+        return ChatMessage(
+            text: "Delete \(expense.title) (\(day)), CHF \(expense.amount)?",
+            isFromUser: false,
+            proposal: .delete(ExpenseDeletion(expenseID: expense.persistentModelID))
+        )
+    }
+
+    /// Lists this month's expenses, newest first.
+    /// the model as a tool result, so it stays short for the 4096-token history.
+    private func listExpenses(matching match: String?, in context: SwiftData.ModelContext) throws -> ChatMessage {
+        let now = Date.now
+        let found = try expenses(matching: match, in: context).filter {
+            Calendar.current.isDate($0.date, equalTo: now, toGranularity: .month)
+        }
+        guard !found.isEmpty else {
+            if let match {
+                return Self.reply("I couldn't find an expense called \"\(match)\" this month.")
+            }
+            return Self.reply("You have no expenses this month yet.")
+        }
+        let lines = found.prefix(10).map {
+            "\($0.title), \($0.date.formatted(.dateTime.day().month())), CHF \($0.amount)"
+        }
+        return Self.reply(lines.joined(separator: "\n"))
+    }
+
     private func latestExpense(matching match: String, in context: SwiftData.ModelContext) throws -> Expense? {
+        try expenses(matching: match, in: context).first
+    }
+
+    /// Newest first; all of them when there is no match.
+    private func expenses(matching match: String?, in context: SwiftData.ModelContext) throws -> [Expense] {
         let descriptor = FetchDescriptor<Expense>(sortBy: [SortDescriptor(\.date, order: .reverse)])
+        let all = try context.fetch(descriptor)
+        guard let match else { return all }
         // Either way round, so "cinema tickets" also finds "Cinema" and
         // "Coop Einkauf" finds "Coop": the model often keeps extra words.
-        return try context.fetch(descriptor).first {
+        return all.filter {
             $0.title.localizedStandardContains(match) || match.localizedStandardContains($0.title)
         }
     }
