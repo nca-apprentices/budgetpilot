@@ -48,13 +48,18 @@ struct BudgetView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            VStack(spacing: 12) {
-                ForEach(expenses.prefix(5)) { expense in
-                    ExpenseRow(expense: expense)
+            if expenses.isEmpty {
+                Text("No expenses yet")
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(expenses.prefix(5)) { expense in
+                        ExpenseRow(expense: expense)
+                    }
                 }
+                .padding(16)
+                .glassEffect(.regular, in: .rect(cornerRadius: 25))
             }
-            .padding(16)
-            .glassEffect(.regular, in: .rect(cornerRadius: 25))
 
             Spacer()
         }
@@ -63,6 +68,26 @@ struct BudgetView: View {
 }
 
 #Preview {
-    BudgetView()
-        .modelContainer(for: Expense.self, inMemory: true)
+    // swiftlint:disable:next force_try
+    let container = try! ModelContainer(
+        for: Expense.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+
+    let examples = [
+        Expense(title: "Kaffee", amount: 5, category: .groceries, date: .now),
+        Expense(title: "Sony WH-1000XM5", amount: 299, category: .leisure, date: .now),
+        Expense(title: "Wocheneinkauf Migros", amount: 86.40, category: .groceries, date: .now),
+        Expense(title: "Pizzeria", amount: 48.50, category: .leisure, date: .now),
+    ]
+
+    for expense in examples {
+        container.mainContext.insert(expense)
+    }
+
+    return ZStack {
+        AppBackground()
+        BudgetView()
+    }
+    .modelContainer(container)
 }
