@@ -30,10 +30,18 @@ struct ChatInputBar: View {
                 HStack(spacing: 8) {
                     GlassIconButton(systemImage: "plus").accessibilityLabel("Add receipt")
                     GlassMenuButton(systemImage: selectedInputMode.systemImage, title: selectedInputMode.title) {
-                        Picker("Input mode", selection: $selectedInputMode) {
+                        Section("Input mode") {
                             ForEach(InputMode.allCases, id: \.self) { mode in
-                                Label(mode.title, systemImage: mode.systemImage)
-                                    .tag(mode)
+                                // A Picker drops the header and subtitles on iOS, a Toggle keeps them
+                                // and still shows the checkmark.
+                                Toggle(isOn: Binding(
+                                    get: { selectedInputMode == mode },
+                                    set: { _ in selectedInputMode = mode }
+                                )) {
+                                    Text(mode.title)
+                                    Text(mode.subtitle)
+                                    Image(systemName: mode.systemImage)
+                                }
                             }
                         }
                     }
