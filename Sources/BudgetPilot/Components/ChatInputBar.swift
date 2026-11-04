@@ -4,6 +4,7 @@ import SwiftUI
 struct ChatInputBar: View {
     @State private var text = ""
     @State private var selectedInputMode: InputMode = .addWithAI
+    @State private var selectedAnswerMode: AnswerMode = .aiAnalysis
     /// False while the model loads or a reply is pending.
     var canSend = true
     var onSend: (String) -> Void
@@ -47,8 +48,23 @@ struct ChatInputBar: View {
                     }
                     Spacer(minLength: 0)
 
-                    GlassIconButton { BudgetRing() }
-                        .accessibilityLabel("Budget")
+                    GlassIconMenu {
+                        Section("Answer mode") {
+                            ForEach(AnswerMode.allCases, id: \.self) { mode in
+                                Toggle(isOn: Binding(
+                                    get: { selectedAnswerMode == mode },
+                                    set: { _ in selectedAnswerMode = mode }
+                                )) {
+                                    Text(mode.title)
+                                    Text(mode.subtitle)
+                                    Image(systemName: mode.systemImage)
+                                }
+                            }
+                        }
+                    } label: {
+                        BudgetRing()
+                    }
+                    .accessibilityLabel("Answer mode")
                     GlassIconButton(systemImage: "mic").accessibilityLabel("Dictate")
                     GlassIconButton(systemImage: "waveform", prominent: true).accessibilityLabel("Talk to assistant")
                 }
