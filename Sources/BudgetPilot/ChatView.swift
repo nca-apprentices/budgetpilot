@@ -60,6 +60,8 @@ struct ChatView: View {
                     BudgetView()
                 }
             }
+            .contentShape(.rect)
+            .onTapGesture { isInputFocused = false }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaInset(edge: .top) {
                 TopBar(selection: $selectedTab)
