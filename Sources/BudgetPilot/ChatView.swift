@@ -9,6 +9,7 @@ struct ChatView: View {
     @State private var loadFailed = false
     /// Shown as a placeholder bubble while a reply is on its way.
     @State private var pendingStatus: String?
+    @FocusState private var isInputFocused: Bool
 
     var body: some View {
         ZStack {
@@ -66,7 +67,10 @@ struct ChatView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 if selectedTab == .chat {
-                    ChatInputBar(canSend: (assistant.isLoaded || loadFailed) && pendingStatus == nil) { text in
+                    ChatInputBar(
+                        isFocused: $isInputFocused,
+                        canSend: (assistant.isLoaded || loadFailed) && pendingStatus == nil
+                    ) { text in
                         messages.append(ChatMessage(text: text, isFromUser: true))
                         pendingStatus = assistant.isLoaded
                             ? "Thinking…"

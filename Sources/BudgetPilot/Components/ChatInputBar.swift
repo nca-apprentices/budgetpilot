@@ -4,6 +4,7 @@ import SwiftUI
 struct ChatInputBar: View {
     @State private var text = ""
     @State private var selectedInputMode: InputMode = .addWithAI
+    var isFocused: FocusState<Bool>.Binding
     /// False while the model loads or a reply is pending.
     var canSend = true
     var onSend: (String) -> Void
@@ -13,6 +14,7 @@ struct ChatInputBar: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     TextField(selectedInputMode.placeholder, text: $text)
+                        .focused(isFocused)
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 6)
 
@@ -62,8 +64,10 @@ struct ChatInputBar: View {
 }
 
 #Preview {
+    @Previewable @FocusState var isFocused: Bool
+
     ZStack(alignment: .bottom) {
         AppBackground()
-        ChatInputBar { _ in }.padding(16)
+        ChatInputBar(isFocused: $isFocused) { _ in }.padding(16)
     }
 }
