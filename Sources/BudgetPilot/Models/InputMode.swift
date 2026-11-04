@@ -8,6 +8,13 @@ enum InputMode: CaseIterable {
         }
     }
 
+    var subtitle: String {
+        switch self {
+        case .addWithAI: "Log expenses via chat"
+        case .priceSearch: "Find the cheapest offers"
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .addWithAI: "sparkles"
