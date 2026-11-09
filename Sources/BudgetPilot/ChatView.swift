@@ -95,6 +95,9 @@ struct ChatView: View {
                 }
             }
         }
+        .onChange(of: selectedTab) {
+            isInputFocused = false
+        }
         .task {
             do {
                 try await assistant.load()
