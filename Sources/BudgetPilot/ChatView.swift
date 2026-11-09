@@ -12,6 +12,16 @@ struct ChatView: View {
     @State private var pendingStatus: String?
     @State private var inputText = ""
     @FocusState private var isInputFocused: Bool
+    @State private var inputMode: InputMode = .addWithAI
+    private let priceSearch = PriceSearchService()
+
+    private var canSend: Bool {
+        guard pendingStatus == nil else { return false }
+        return switch inputMode {
+        case .addWithAI: assistant.isLoaded || loadFailed
+        case .priceSearch: true
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -37,6 +47,9 @@ struct ChatView: View {
                             VStack(spacing: 8) {
                                 ForEach($messages) { $message in
                                     MessageBubble(text: message.text, isFromUser: message.isFromUser)
+                                    ForEach(message.offers.prefix(5)) { offer in
+                                        PriceOfferRow(offer: offer)
+                                    }
                                     if let proposal = message.proposal {
                                         ConfirmButton(
                                             title: proposal.confirmTitle,
@@ -73,24 +86,14 @@ struct ChatView: View {
                 if selectedTab == .chat {
                     ChatInputBar(
                         text: $inputText,
+                        selectedInputMode: $inputMode,
                         isFocused: $isInputFocused,
-                        canSend: (assistant.isLoaded || loadFailed) && pendingStatus == nil
+                        canSend: canSend
                     ) { text in
                         messages.append(ChatMessage(text: text, isFromUser: true))
-                        pendingStatus = assistant.isLoaded
-                            ? "Thinking…"
-                            : "Loading the model. The first time it downloads several GB, which can take a few minutes."
-                        Task {
-                            defer { pendingStatus = nil }
-                            do {
-                                let replies = try await assistant.respond(to: text, in: modelContext)
-                                messages.append(contentsOf: replies)
-                            } catch {
-                                messages.append(ChatMessage(
-                                    text: "Error: \(error.localizedDescription)",
-                                    isFromUser: false
-                                ))
-                            }
+                        switch inputMode {
+                        case .addWithAI: askAssistant(text)
+                        case .priceSearch: searchPrices(for: text)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -107,6 +110,42 @@ struct ChatView: View {
             } catch {
                 messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
                 loadFailed = true
+            }
+        }
+    }
+
+    private func askAssistant(_ text: String) {
+        pendingStatus = assistant.isLoaded
+            ? "Thinking…"
+            : "Loading the model. The first time it downloads several GB, which can take a few minutes."
+        Task {
+            defer { pendingStatus = nil }
+            do {
+                let replies = try await assistant.respond(to: text, in: modelContext)
+                messages.append(contentsOf: replies)
+            } catch {
+                messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
+            }
+        }
+    }
+
+    /// Skips the model on purpose: it rewrites numbers wrongly, so prices go
+    /// straight from the page to the screen.
+    private func searchPrices(for query: String) {
+        pendingStatus = "Searching toppreise.ch…"
+        Task {
+            defer { pendingStatus = nil }
+            do {
+                let offers = try await priceSearch.search(query)
+                messages.append(ChatMessage(
+                    text: offers.isEmpty
+                        ? "Nothing found on toppreise.ch for “\(query)”."
+                        : "Best matches on toppreise.ch, cheapest offer incl. shipping:",
+                    isFromUser: false,
+                    offers: offers
+                ))
+            } catch {
+                messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
             }
         }
     }

@@ -3,10 +3,10 @@ import SwiftUI
 /// The chat composer. Only the send button is wired up for now.
 struct ChatInputBar: View {
     @Binding var text: String
-    @State private var selectedInputMode: InputMode = .addWithAI
+    @Binding var selectedInputMode: InputMode
     @State private var selectedAnswerMode: AnswerMode = .aiAnalysis
     var isFocused: FocusState<Bool>.Binding
-    /// False while the model loads or a reply is pending.
+    /// False while a reply is pending, or while the model loads in a mode that needs it.
     var canSend = true
     var onSend: (String) -> Void
 
@@ -84,6 +84,10 @@ struct ChatInputBar: View {
 
     ZStack(alignment: .bottom) {
         AppBackground()
-        ChatInputBar(text: $text, isFocused: $isFocused) { _ in }.padding(16)
+        ChatInputBar(
+            text: $text,
+            selectedInputMode: .constant(.addWithAI),
+            isFocused: $isFocused
+        ) { _ in }.padding(16)
     }
 }
