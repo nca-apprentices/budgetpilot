@@ -31,7 +31,20 @@ struct ChatInputBar: View {
                 .animation(.default, value: text.isEmpty)
 
                 HStack(spacing: 8) {
-                    GlassIconButton(systemImage: "plus").accessibilityLabel("Add receipt")
+                    GlassIconMenu {
+                        ForEach(AttachmentOption.allCases, id: \.self) { option in
+                            Button {} label: {
+                                Text(option.title)
+                                if let subtitle = option.subtitle {
+                                    Text(subtitle)
+                                }
+                                Image(systemName: option.systemImage)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Add attachment")
                     GlassMenuButton(systemImage: selectedInputMode.systemImage, title: selectedInputMode.title) {
                         Section("Input mode") {
                             ForEach(InputMode.allCases, id: \.self) { mode in
