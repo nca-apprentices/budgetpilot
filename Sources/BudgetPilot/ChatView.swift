@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct ChatView: View {
@@ -104,6 +105,7 @@ struct ChatView: View {
             switch proposal {
             case let .add(expense): try expense.save(in: modelContext)
             case let .edit(edit): try edit.apply(in: modelContext)
+            case let .delete(deletion): try deletion.apply(in: modelContext)
             }
             message.wrappedValue.isConfirmed = true
         } catch {
