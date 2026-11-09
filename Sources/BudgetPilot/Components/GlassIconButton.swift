@@ -36,7 +36,7 @@ extension GlassIconButton where Label == Image {
         HStack(spacing: 8) {
             GlassIconButton(systemImage: "plus")
             GlassIconButton(systemImage: "mic")
-            GlassIconButton(systemImage: "waveform", prominent: true)
+            GlassIconButton(systemImage: "arrow.up", prominent: true)
         }
         .tint(.appAccent)
     }

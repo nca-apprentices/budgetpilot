@@ -66,7 +66,6 @@ struct ChatInputBar: View {
                     }
                     .accessibilityLabel("Answer mode")
                     GlassIconButton(systemImage: "mic").accessibilityLabel("Dictate")
-                    GlassIconButton(systemImage: "waveform", prominent: true).accessibilityLabel("Talk to assistant")
                 }
             }
             .padding(14)
