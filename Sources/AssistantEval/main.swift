@@ -228,6 +228,7 @@ func appReply(to call: Call, in message: String) -> String {
     case .success(.deleteExpense): "I can't delete expenses yet."
     case .success(.setFixedCosts): "I can't save fixed costs yet."
     case .success(.getBudget): "I can't show what is left yet."
+    case .success(.getExpenses): "You have no expenses this month yet."
     }
 }
 

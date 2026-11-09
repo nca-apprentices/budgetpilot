@@ -218,6 +218,39 @@ struct BudgetIntentTests {
         #expect(reply.proposal == nil)
     }
 
+    @Test @MainActor
+    func proposesDeletingTheNewestMatch() throws {
+        let context = try makeContext()
+        let older = Expense(
+            title: "Bretzel", amount: 4, category: .groceries, date: Date(timeIntervalSince1970: 1_800_000_000)
+        )
+        let newer = Expense(
+            title: "Bretzel", amount: 5, category: .groceries, date: Date(timeIntervalSince1970: 1_800_100_000)
+        )
+        context.insert(older)
+        context.insert(newer)
+        try context.save()
+
+        let reply = try AssistantModel().handle(.deleteExpense(match: "bretzel"), in: context)
+
+        #expect(reply.text.hasPrefix("Delete Bretzel ("))
+        #expect(reply.text.hasSuffix("), CHF 5?"))
+        #expect(reply.proposal == .delete(ExpenseDeletion(expenseID: newer.persistentModelID)))
+        #expect(try context.fetchCount(FetchDescriptor<Expense>()) == 2)
+    }
+
+    @Test @MainActor
+    func repliesWhenNoExpenseMatchesADelete() throws {
+        let context = try makeContext()
+        context.insert(Expense(title: "Halbtax", amount: 190, category: .transport, date: .now))
+        try context.save()
+
+        let reply = try AssistantModel().handle(.deleteExpense(match: "Bretzel"), in: context)
+
+        #expect(reply.text == "I couldn't find an expense called \"Bretzel\".")
+        #expect(reply.proposal == nil)
+    }
+
     @Test
     func readsADelete() throws {
         let intent = try #require(BudgetIntent(name: "delete_expense", arguments: ["match": " lunch "]))
@@ -241,6 +274,14 @@ struct BudgetIntentTests {
         let intent = try #require(BudgetIntent(name: "get_budget", arguments: [:]))
         #expect(intent == .getBudget)
         #expect(intent.isBacked(by: "how much is left?"))
+    }
+
+    @Test
+    func readsAnExpenseListWithAndWithoutMatch() throws {
+        let named = try #require(BudgetIntent(name: "get_expenses", arguments: ["match": " Coop "]))
+        #expect(named == .getExpenses(match: "Coop"))
+        #expect(named.isBacked(by: "what did I buy at Coop?"))
+        #expect(BudgetIntent(name: "get_expenses", arguments: [:]) == .getExpenses(match: nil))
     }
 
     /// The model understands these already; the app can't act on them yet.

@@ -97,4 +97,37 @@ struct ExpenseTests {
             try edit.apply(in: context)
         }
     }
+
+    @Test
+    func appliesADeletion() throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: Expense.self, configurations: config)
+        let context = ModelContext(container)
+        let bretzel = Expense(title: "Bretzel", amount: 5, category: .groceries, date: .now)
+        context.insert(bretzel)
+        context.insert(Expense(title: "Coop", amount: 45, category: .groceries, date: .now))
+        try context.save()
+
+        try ExpenseDeletion(expenseID: bretzel.persistentModelID).apply(in: context)
+
+        let left = try context.fetch(FetchDescriptor<Expense>())
+        #expect(left.map(\.title) == ["Coop"])
+    }
+
+    @Test
+    func failsToDeleteAnExpenseThatIsGone() throws {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: Expense.self, configurations: config)
+        let context = ModelContext(container)
+        let expense = Expense(title: "Bretzel", amount: 5, category: .groceries, date: .now)
+        context.insert(expense)
+        try context.save()
+        let deletion = ExpenseDeletion(expenseID: expense.persistentModelID)
+        context.delete(expense)
+        try context.save()
+
+        #expect(throws: ExpenseEditError.expenseGone) {
+            try deletion.apply(in: context)
+        }
+    }
 }
