@@ -7,6 +7,8 @@ struct ChatMessage: Identifiable {
     /// Set when the assistant proposes something the user has to confirm.
     var proposal: Proposal?
     var isConfirmed = false
+    /// Products found by price search, shown under the text.
+    var offers: [PriceOffer] = []
 }
 
 enum Proposal: Equatable {
