@@ -78,10 +78,15 @@ struct BudgetView: View {
             .padding(.bottom, 16)
         }
         .sheet(item: $selectedExpense) { expense in
-            ExpenseDetailView(expense: expense)
-                .presentationDetents([.fraction(0.75)])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(Color.appOffWhite)
+            ExpenseDetailView(expense: expense) {
+                selectedExpense = nil
+                withAnimation {
+                    modelContext.delete(expense)
+                }
+            }
+            .presentationDetents([.fraction(0.75)])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Color.appOffWhite)
         }
     }
 

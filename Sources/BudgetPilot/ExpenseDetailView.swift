@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ExpenseDetailView: View {
     let expense: Expense
+    let onDelete: () -> Void
     @State private var isEditing = false
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmingDelete = false
@@ -79,7 +80,9 @@ struct ExpenseDetailView: View {
             }
             .alert("Delete expense?", isPresented: $isConfirmingDelete) {
                 Button("Cancel", role: .cancel) {}
-                Button("Delete", role: .destructive) {}
+                Button("Delete", role: .destructive) {
+                    onDelete()
+                }
             } message: {
                 Text("\"\(expense.title)\" (\(formattedAmount)) will be removed from your budget.")
             }
@@ -95,5 +98,5 @@ struct ExpenseDetailView: View {
         date: .now,
         paymentMethod: .card,
         note: "Via chat"
-    ))
+    )) {}
 }
