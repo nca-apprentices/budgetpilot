@@ -53,7 +53,7 @@ struct BudgetView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                  if expenses.isEmpty {
+                if expenses.isEmpty {
                     Text("No expenses yet")
                         .foregroundStyle(.secondary)
                 } else {
@@ -127,7 +127,6 @@ struct BudgetView: View {
                 .glassEffect(.regular, in: .rect(cornerRadius: 25))
             }
         }
-
     }
 }
 
