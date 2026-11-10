@@ -5,6 +5,7 @@ struct BudgetView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
     @Query(sort: \Wish.addedAt, order: .reverse) private var wishes: [Wish]
+    @State private var selectedExpense: Expense?
     private var summary: BudgetSummary {
         BudgetSummary(income: IncomeData().monthlyIncome ?? 0, fixedCosts: 0, expenses: expenses, now: .now)
     }
@@ -52,13 +53,19 @@ struct BudgetView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                if expenses.isEmpty {
+                  if expenses.isEmpty {
                     Text("No expenses yet")
                         .foregroundStyle(.secondary)
                 } else {
                     VStack(spacing: 12) {
                         ForEach(expenses.prefix(5)) { expense in
-                            ExpenseRow(expense: expense)
+                            Button {
+                                selectedExpense = expense
+                            } label: {
+                                ExpenseRow(expense: expense)
+                                    .contentShape(.rect)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(16)
@@ -69,6 +76,12 @@ struct BudgetView: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
+        }
+        .sheet(item: $selectedExpense) { expense in
+            ExpenseDetailView(expense: expense)
+                .presentationDetents([.fraction(0.75)])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Color.appOffWhite)
         }
     }
 
@@ -114,6 +127,7 @@ struct BudgetView: View {
                 .glassEffect(.regular, in: .rect(cornerRadius: 25))
             }
         }
+
     }
 }
 
