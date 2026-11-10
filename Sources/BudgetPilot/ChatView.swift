@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ChatView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var wishes: [Wish]
     @State private var messages: [ChatMessage] = []
     @State private var selectedTab: AppTab = .chat
     @State private var assistant = AssistantModel()
@@ -48,7 +49,12 @@ struct ChatView: View {
                                 ForEach($messages) { $message in
                                     MessageBubble(text: message.text, isFromUser: message.isFromUser)
                                     ForEach(message.offers.prefix(5)) { offer in
-                                        PriceOfferRow(offer: offer)
+                                        PriceOfferRow(
+                                            offer: offer,
+                                            isOnWishlist: wishes.contains { $0.url == offer.url }
+                                        ) {
+                                            toggleWishlist(offer)
+                                        }
                                     }
                                     if let proposal = message.proposal {
                                         ConfirmButton(
@@ -147,6 +153,14 @@ struct ChatView: View {
             } catch {
                 messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
             }
+        }
+    }
+
+    private func toggleWishlist(_ offer: PriceOffer) {
+        do {
+            try Wishlist.toggle(offer, in: modelContext)
+        } catch {
+            messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
         }
     }
 
