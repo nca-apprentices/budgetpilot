@@ -3,6 +3,7 @@ import SwiftUI
 
 struct BudgetView: View {
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
+    @State private var selectedExpense: Expense?
     private var summary: BudgetSummary {
         BudgetSummary(income: IncomeData().monthlyIncome ?? 0, fixedCosts: 0, expenses: expenses, now: .now)
     }
@@ -54,7 +55,13 @@ struct BudgetView: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(expenses.prefix(5)) { expense in
-                        ExpenseRow(expense: expense)
+                        Button {
+                            selectedExpense = expense
+                        } label: {
+                            ExpenseRow(expense: expense)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(16)
@@ -64,6 +71,12 @@ struct BudgetView: View {
             Spacer()
         }
         .padding(.horizontal, 16)
+        .sheet(item: $selectedExpense) { expense in
+            ExpenseDetailView(expense: expense)
+                .presentationDetents([.fraction(0.75)])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Color.appOffWhite)
+        }
     }
 }
 
