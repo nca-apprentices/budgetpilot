@@ -2,7 +2,9 @@ import SwiftData
 import SwiftUI
 
 struct BudgetView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
+    @Query(sort: \Wish.addedAt, order: .reverse) private var wishes: [Wish]
     private var summary: BudgetSummary {
         BudgetSummary(income: IncomeData().monthlyIncome ?? 0, fixedCosts: 0, expenses: expenses, now: .now)
     }
@@ -12,65 +14,113 @@ struct BudgetView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 4) {
-                    Text("Available budget ·")
-                    Text(Date.now, format: .dateTime.month(.wide).year())
+        // Scrolls because the wishlist shows every wish and can get long.
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 4) {
+                        Text("Available budget ·")
+                        Text(Date.now, format: .dateTime.month(.wide).year())
+                    }
+                    .foregroundStyle(.secondary)
+
+                    Text(summary.available, format: .currency(code: "CHF"))
+                        .font(.system(size: 44, weight: .bold))
+
+                    ProgressView(value: min(summary.spentPercent, 1))
+                        .tint(Color.appAccent)
+                        .scaleEffect(x: 1, y: 2)
+
+                    HStack(spacing: 4) {
+                        Text("Spent")
+                        Text(summary.spentPercent, format: .percent.precision(.fractionLength(0)))
+                        Text("·")
+                        Text("Free")
+                        Text(freePercent, format: .percent.precision(.fractionLength(0)))
+                    }
+                    .foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(summary.available, format: .currency(code: "CHF"))
-                    .font(.system(size: 44, weight: .bold))
-
-                ProgressView(value: min(summary.spentPercent, 1))
-                    .tint(Color.appAccent)
-                    .scaleEffect(x: 1, y: 2)
-
-                HStack(spacing: 4) {
-                    Text("Spent")
-                    Text(summary.spentPercent, format: .percent.precision(.fractionLength(0)))
-                    Text("·")
-                    Text("Free")
-                    Text(freePercent, format: .percent.precision(.fractionLength(0)))
+                HStack(spacing: 8) {
+                    BudgetTile(title: "Income", amount: summary.income)
+                    BudgetTile(title: "Fixed costs", amount: summary.fixedCosts)
+                    BudgetTile(title: "Expenses", amount: summary.spent)
                 }
-                .foregroundStyle(.secondary)
+
+                Text("Recent expenses")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                if expenses.isEmpty {
+                    Text("No expenses yet")
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(expenses.prefix(5)) { expense in
+                            ExpenseRow(expense: expense)
+                        }
+                    }
+                    .padding(16)
+                    .glassEffect(.regular, in: .rect(cornerRadius: 25))
+                }
+
+                wishlist
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+        }
+    }
 
-            HStack(spacing: 8) {
-                BudgetTile(title: "Income", amount: summary.income)
-                BudgetTile(title: "Fixed costs", amount: summary.fixedCosts)
-                BudgetTile(title: "Expenses", amount: summary.spent)
+    private var wishlist: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Wishlist")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    Spacer()
+                    if !wishes.isEmpty {
+                        Text(Wishlist.total(of: wishes), format: .currency(code: "CHF"))
+                            .font(.headline)
+                    }
+                }
+                if !wishes.isEmpty {
+                    let shortfall = Wishlist.shortfall(of: wishes, available: summary.available)
+                    Group {
+                        if shortfall > 0 {
+                            Text("\(shortfall, format: .currency(code: "CHF")) more than your available budget")
+                        } else {
+                            Text("Fits in your available budget")
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
             }
 
-            Text("Recent expenses")
-                .font(.title2)
-                .fontWeight(.semibold)
-
-            if expenses.isEmpty {
-                Text("No expenses yet")
+            if wishes.isEmpty {
+                Text("No wishes yet. Save one from a price search.")
                     .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 12) {
-                    ForEach(expenses.prefix(5)) { expense in
-                        ExpenseRow(expense: expense)
+                    ForEach(wishes) { wish in
+                        WishRow(wish: wish) {
+                            withAnimation { modelContext.delete(wish) }
+                        }
                     }
                 }
                 .padding(16)
                 .glassEffect(.regular, in: .rect(cornerRadius: 25))
             }
-
-            Spacer()
         }
-        .padding(.horizontal, 16)
     }
 }
 
 #Preview {
     // swiftlint:disable:next force_try
     let container = try! ModelContainer(
-        for: Expense.self,
+        for: Expense.self, Wish.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
 
@@ -84,6 +134,13 @@ struct BudgetView: View {
     for expense in examples {
         container.mainContext.insert(expense)
     }
+
+    container.mainContext.insert(Wish(offer: PriceOffer(
+        title: "SONY Playstation 5 Slim Digital Edition",
+        price: 549,
+        offerCount: 14,
+        url: URL(string: "https://www.toppreise.ch/preisvergleich/PS5-p867338")!
+    )))
 
     return ZStack {
         AppBackground()
