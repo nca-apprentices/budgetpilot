@@ -2,9 +2,14 @@ import SwiftData
 import SwiftUI
 
 struct ExpenseEditView: View {
+    private enum Field {
+        case title, amount, note
+    }
+
     let expense: Expense
     @State private var draft: ExpenseDraft
     @State private var errorMessage: String?
+    @FocusState private var focusedField: Field?
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
@@ -19,10 +24,12 @@ struct ExpenseEditView: View {
                 Section {
                     field(systemImage: "textformat", color: .appDetailTitle) {
                         TextField("Title", text: $draft.title)
+                            .focused($focusedField, equals: .title)
                     }
                     field(systemImage: "banknote", color: .appDetailAmount) {
                         TextField("Amount", value: $draft.amount, format: .currency(code: "CHF"))
                             .keyboardType(.decimalPad)
+                            .focused($focusedField, equals: .amount)
                     }
                 } footer: {
                     if !draft.hasValidAmount {
@@ -52,11 +59,24 @@ struct ExpenseEditView: View {
                 }
                 Section {
                     field(systemImage: "doc.text", color: .appDetailNote) {
-                        TextField("Note", text: $draft.note, axis: .vertical)
-                            .lineLimit(3...)
+                        TextField(
+                            "Note",
+                            text: $draft.note,
+                            prompt: Text("Note").foregroundColor(.primary),
+                            axis: .vertical
+                        )
+                        .lineLimit(1 ... 6)
+                        .focused($focusedField, equals: .note)
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            // Only while typing: a tap gesture on the whole form stops the
+            // pickers from opening their menus.
+            .simultaneousGesture(
+                TapGesture().onEnded { focusedField = nil },
+                isEnabled: focusedField != nil
+            )
             .navigationTitle("Edit Expense")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
