@@ -3,8 +3,8 @@ import SwiftUI
 struct ExpenseDetailView: View {
     let expense: Expense
     let onDelete: () -> Void
-    @State private var isEditing = false
     @Environment(\.dismiss) private var dismiss
+    @State private var isEditing = false
     @State private var isConfirmingDelete = false
 
     private var formattedAmount: String {
