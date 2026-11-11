@@ -116,3 +116,28 @@ let cases: [EvalCase] = [
     EvalCase("chat-tip", "How can I save money on groceries?", expect: .reply),
     EvalCase("chat-hi", "Hoi!", expect: .reply),
 ]
+
+/// Price search: a sentence and the words its search term must contain
+/// (`|`-separated, any of them, case-insensitive). Run with `-- --search-terms`.
+struct SearchTermCase {
+    let id: String
+    let text: String
+    let expected: String
+}
+
+/// None of these products are in the prompt's examples, so passing means the
+/// model generalises rather than copies an example.
+let searchTermCases: [SearchTermCase] = [
+    SearchTermCase(id: "term-en", text: "I'm after a good price on Bose QuietComfort Ultra", expected: "bose"),
+    SearchTermCase(id: "term-de", text: "Ich hätte gern einen Kindle Paperwhite, was kostet der?", expected: "kindle"),
+    SearchTermCase(id: "term-ch", text: "wievill choschtet es iPad Air im Moment?", expected: "ipad"),
+    SearchTermCase(id: "term-fr", text: "je cherche une Nintendo Switch 2 pas trop chère", expected: "switch"),
+    SearchTermCase(id: "term-size", text: "what does an LG 65 inch C4 cost", expected: "65"),
+    SearchTermCase(id: "term-budget", text: "looking for a Roborock vacuum under 400 francs", expected: "roborock"),
+    SearchTermCase(id: "term-gift", text: "Suche ein Geschenk für meine Freundin: Apple Watch SE", expected: "watch"),
+    // Accessories: the term has to keep the accessory, in the user's language.
+    SearchTermCase(id: "term-acc-en", text: "I need a case for my iPhone 15", expected: "case"),
+    SearchTermCase(id: "term-acc-de", text: "Ich brauche eine Hülle für mein Pixel 9", expected: "hülle"),
+    SearchTermCase(id: "term-acc-ch", text: "bruuch es Ladegrät für mis MacBook Air", expected: "ladegrät"),
+    SearchTermCase(id: "term-acc-fr", text: "une housse pour mon MacBook Pro 14", expected: "housse"),
+]

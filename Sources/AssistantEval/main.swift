@@ -11,6 +11,7 @@ import Tokenizers
 //
 //   AssistantEval [--config overrides.json] [--runs N] [--only id,id] [--out transcripts.jsonl]
 //   AssistantEval --chat [--config overrides.json]   one message per stdin line, /reset starts over
+//   AssistantEval --search-terms [--runs N] [--only id,id]   price search terms, see searchTermCases
 //   AssistantEval --dump-config    prints what the app ships, as a starting point for overrides
 
 struct Overrides: Decodable {
@@ -239,6 +240,42 @@ func verdict(on call: Call, in message: String) -> String? {
     } else {
         nil
     }
+}
+
+if CommandLine.arguments.contains("--search-terms") {
+    // What ships, not the --config overrides: those are for the expense prompt.
+    var termsPassed = 0
+    let termCases = searchTermCases.filter { only?.contains($0.id) ?? true }
+    for _ in 1 ... runs {
+        for item in termCases {
+            let session = ChatSession(
+                container,
+                instructions: SearchTermSetup.instructions,
+                generateParameters: SearchTermSetup.parameters,
+                additionalContext: AssistantSetup.additionalContext
+            )
+            let start = Date()
+            let reply = try await session.respond(to: item.text)
+            let seconds = Date().timeIntervalSince(start)
+            let term = SearchTerm.checked(reply, in: item.text)
+            let options = item.expected.split(separator: "|").map { $0.lowercased() }
+            let problem: String? = if let term {
+                options.contains { term.lowercased().contains($0) } ? nil : "expected \(item.expected)"
+            } else {
+                "app rejects the term"
+            }
+            if problem == nil {
+                termsPassed += 1
+            }
+            let mark = problem == nil ? "PASS" : "FAIL"
+            let paddedID = item.id.padding(toLength: 16, withPad: " ", startingAt: 0)
+            let shown = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+            print("\(mark) \(paddedID) \(String(format: "%4.1f", seconds))s  \(problem ?? "")  | \(shown)")
+        }
+    }
+    let termsTotal = termCases.count * runs
+    print("\n\(termsPassed)/\(termsTotal) passed")
+    exit(termsPassed == termsTotal ? 0 : 1)
 }
 
 if CommandLine.arguments.contains("--chat") {

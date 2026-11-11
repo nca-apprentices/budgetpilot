@@ -128,6 +128,27 @@ final class AssistantModel {
         #endif
     }
 
+    /// The product in a sentence like "I'm looking for a cheap PS5", or nil
+    /// when the model isn't loaded or its answer doesn't check out.
+    func searchTerm(from text: String) async -> String? {
+        #if targetEnvironment(simulator)
+            return nil
+        #else
+            // Price search works without the model; don't start a download for it.
+            guard let container else { return nil }
+            // A session of its own: the expense conversation shouldn't see
+            // searches, and its earlier turns shouldn't steer the term.
+            let session = ChatSession(
+                container,
+                instructions: SearchTermSetup.instructions,
+                generateParameters: SearchTermSetup.parameters,
+                additionalContext: AssistantSetup.additionalContext
+            )
+            guard let reply = try? await session.respond(to: text) else { return nil }
+            return SearchTerm.checked(reply, in: text)
+        #endif
+    }
+
     /// Checks a call against the user's message, then handles it, or asks
     /// the user when the app won't act on it.
     func reply(

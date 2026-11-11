@@ -135,18 +135,25 @@ struct ChatView: View {
         }
     }
 
-    /// Skips the model on purpose: it rewrites numbers wrongly, so prices go
-    /// straight from the page to the screen.
-    private func searchPrices(for query: String) {
+    /// The model only picks the search term, and only from the user's words.
+    /// Prices go straight from the page to the screen: it rewrites numbers wrongly.
+    private func searchPrices(for text: String) {
         pendingStatus = "Searching toppreise.ch…"
         Task {
             defer { pendingStatus = nil }
             do {
-                let offers = try await priceSearch.search(query)
+                let term = SearchTerm.isShortEnough(text) ? nil : await assistant.searchTerm(from: text)
+                var query = term ?? text
+                var offers = try await priceSearch.search(query)
+                // A wrong term shouldn't find less than the sentence itself.
+                if offers.isEmpty, term != nil {
+                    query = text
+                    offers = try await priceSearch.search(query)
+                }
                 messages.append(ChatMessage(
                     text: offers.isEmpty
                         ? "Nothing found on toppreise.ch for “\(query)”."
-                        : "Best matches on toppreise.ch, cheapest offer incl. shipping:",
+                        : "Best matches for “\(query)” on toppreise.ch, cheapest offer incl. shipping:",
                     isFromUser: false,
                     offers: offers
                 ))
