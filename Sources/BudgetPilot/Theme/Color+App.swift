@@ -7,6 +7,7 @@ extension Color {
     static let appAccent = Color(red: 0.20, green: 0.46, blue: 0.87)
     static let appDestructive = Color(red: 0.94, green: 0.27, blue: 0.23)
     static let appSegmentSelected = Color(red: 1.00, green: 1.00, blue: 1.00)
+    static let appSuccess = Color(red: 0.20, green: 0.70, blue: 0.35)
     static let appGlassTint = Color(red: 1.00, green: 1.00, blue: 1.00)
 
     // Categories
