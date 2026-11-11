@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ExpenseDetailView: View {
     let expense: Expense
+    @State private var isEditing = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -45,7 +46,7 @@ struct ExpenseDetailView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 HStack(spacing: 12) {
-                    Button {} label: {
+                    Button { isEditing = true } label: {
                         Text("Edit").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.glass)
@@ -65,6 +66,9 @@ struct ExpenseDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Close", systemImage: "xmark") { dismiss() }
                 }
+            }
+            .sheet(isPresented: $isEditing) {
+                ExpenseEditView(expense: expense)
             }
         }
     }

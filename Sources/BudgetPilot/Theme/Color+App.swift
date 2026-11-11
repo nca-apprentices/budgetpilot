@@ -19,6 +19,8 @@ extension Color {
     static let appCategoryOther = Color(red: 0.55, green: 0.57, blue: 0.62)
 
     // Details
+    static let appDetailTitle = Color(red: 0.18, green: 0.69, blue: 0.71)
+    static let appDetailAmount = Color(red: 0.20, green: 0.70, blue: 0.40)
     static let appDetailCategory = Color(red: 0.58, green: 0.45, blue: 0.93)
     static let appDetailDate = Color(red: 0.94, green: 0.30, blue: 0.30)
     static let appDetailPayment = Color(red: 0.20, green: 0.55, blue: 0.95)

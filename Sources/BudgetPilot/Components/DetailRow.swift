@@ -9,10 +9,7 @@ struct DetailRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.white)
-                .frame(width: 30, height: 30)
-                .background(color, in: .rect(cornerRadius: 8))
+            DetailIcon(systemImage: systemImage, color: color)
             Text(title)
             Spacer()
             Text(value)
