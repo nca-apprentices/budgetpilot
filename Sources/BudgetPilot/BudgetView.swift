@@ -6,6 +6,7 @@ struct BudgetView: View {
     @Query(sort: \Expense.date, order: .reverse) private var expenses: [Expense]
     @Query(sort: \Wish.addedAt, order: .reverse) private var wishes: [Wish]
     @State private var selectedExpense: Expense?
+    @State private var lastDeleted: DeletedExpense?
     private var summary: BudgetSummary {
         BudgetSummary(income: IncomeData().monthlyIncome ?? 0, fixedCosts: 0, expenses: expenses, now: .now)
     }
@@ -78,10 +79,40 @@ struct BudgetView: View {
             .padding(.bottom, 16)
         }
         .sheet(item: $selectedExpense) { expense in
-            ExpenseDetailView(expense: expense)
-                .presentationDetents([.fraction(0.75)])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(Color.appOffWhite)
+            ExpenseDetailView(expense: expense) {
+                selectedExpense = nil
+                withAnimation {
+                    lastDeleted = DeletedExpense(expense)
+                    modelContext.delete(expense)
+                }
+            }
+            .presentationDetents([.fraction(0.75)])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Color.appOffWhite)
+        }
+        .overlay(alignment: .bottom) {
+            if lastDeleted != nil {
+                UndoToast(message: "Expense deleted") {
+                    withAnimation {
+                        lastDeleted?.restore(in: modelContext)
+                        lastDeleted = nil
+                    }
+                }
+                .padding(.bottom, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .task(id: lastDeleted) {
+            guard lastDeleted != nil else { return }
+            do {
+                try await Task.sleep(for: .seconds(6))
+            } catch {
+                // Cancelled because another expense was deleted; keep its toast.
+                return
+            }
+            withAnimation {
+                lastDeleted = nil
+            }
         }
     }
 
