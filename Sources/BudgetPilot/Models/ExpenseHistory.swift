@@ -19,4 +19,38 @@ struct ExpenseHistory {
     var count: Int {
         expensesInPeriod.count
     }
+
+    var groups: [ExpenseGroup] {
+        let byStart = Dictionary(grouping: expensesInPeriod) { expense in
+            Calendar.current.dateInterval(of: groupingUnit, for: expense.date)?.start ?? expense.date
+        }
+        return byStart.keys.sorted(by: >).map { start in
+            ExpenseGroup(
+                title: title(forGroupStartingAt: start),
+                expenses: byStart[start, default: []].sorted { $0.date > $1.date }
+            )
+        }
+    }
+
+    private var groupingUnit: Calendar.Component {
+        period == .year ? .month : .weekOfYear
+    }
+
+    private func title(forGroupStartingAt start: Date) -> String {
+        if period == .year {
+            return start.formatted(.dateTime.month(.wide))
+        }
+
+        let thisWeek = Calendar.current.dateInterval(of: .weekOfYear, for: now)?.start
+        if start == thisWeek {
+            return "This week"
+        }
+
+        let lastWeek = thisWeek.flatMap { Calendar.current.date(byAdding: .weekOfYear, value: -1, to: $0) }
+        if start == lastWeek {
+            return "Last week"
+        }
+
+        return "Week of \(start.formatted(.dateTime.day().month()))"
+    }
 }
