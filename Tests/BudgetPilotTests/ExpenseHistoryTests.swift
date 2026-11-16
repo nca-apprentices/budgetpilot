@@ -5,6 +5,7 @@ import Testing
 struct ExpenseHistoryTests {
     let now = Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 15))!
     let yesterday = Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 14))!
+    let lastWeek = Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 8))!
     let twoWeeksAgo = Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 1))!
     let lastMonth = Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 30))!
     let january = Calendar.current.date(from: DateComponents(year: 2026, month: 1, day: 15))!
@@ -58,5 +59,50 @@ struct ExpenseHistoryTests {
         let history = ExpenseHistory(expenses: expenses, period: .month, now: now)
 
         #expect(history.total == 44.50)
+    }
+
+    @Test
+    func groupsThisAndLastWeek() {
+        let expenses = [
+            Expense(title: "Kino", amount: 21, category: .leisure, date: yesterday),
+            Expense(title: "Headphones", amount: 50, category: .leisure, date: lastWeek),
+        ]
+
+        let history = ExpenseHistory(expenses: expenses, period: .month, now: now)
+
+        #expect(history.groups.map(\.title) == ["This week", "Last week"])
+    }
+
+    @Test
+    func namesOlderWeeksByTheirStart() {
+        let expense = Expense(title: "Kino", amount: 21, category: .leisure, date: twoWeeksAgo)
+
+        let history = ExpenseHistory(expenses: [expense], period: .month, now: now)
+
+        #expect(history.groups.first?.title.hasPrefix("Week of") == true)
+    }
+
+    @Test
+    func yearGroupsByMonth() {
+        let expenses = [
+            Expense(title: "Coop", amount: 50, category: .groceries, date: january),
+            Expense(title: "Kino", amount: 21, category: .leisure, date: now),
+        ]
+
+        let history = ExpenseHistory(expenses: expenses, period: .year, now: now)
+
+        #expect(history.groups.map { $0.expenses.map(\.title) } == [["Kino"], ["Coop"]])
+    }
+
+    @Test
+    func sortsExpensesNewestFirst() {
+        let expenses = [
+            Expense(title: "Coop", amount: 50, category: .groceries, date: yesterday),
+            Expense(title: "Kino", amount: 21, category: .leisure, date: now),
+        ]
+
+        let history = ExpenseHistory(expenses: expenses, period: .week, now: now)
+
+        #expect(history.groups.first?.expenses.map(\.title) == ["Kino", "Coop"])
     }
 }
