@@ -22,3 +22,15 @@ struct BudgetSummary {
         return NSDecimalNumber(decimal: spent / budget).doubleValue
     }
 }
+
+extension BudgetSummary {
+    /// What the overview shows. Amounts that aren't set yet count as 0.
+    init(stored: IncomeData, expenses: [Expense], now: Date) {
+        self.init(
+            income: stored.monthlyIncome ?? 0,
+            fixedCosts: stored.monthlyFixedCosts ?? 0,
+            expenses: expenses,
+            now: now
+        )
+    }
+}

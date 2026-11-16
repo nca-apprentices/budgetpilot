@@ -8,7 +8,7 @@ struct BudgetView: View {
     @State private var selectedExpense: Expense?
     @State private var lastDeleted: DeletedExpense?
     private var summary: BudgetSummary {
-        BudgetSummary(income: IncomeData().monthlyIncome ?? 0, fixedCosts: 0, expenses: expenses, now: .now)
+        BudgetSummary(stored: IncomeData(), expenses: expenses, now: .now)
     }
 
     private var freePercent: Double {
