@@ -41,4 +41,33 @@ struct BudgetSummaryTests {
 
         #expect(summary.spentPercent == 0.5)
     }
+
+    @Test
+    func usesTheStoredIncomeAndFixedCosts() throws {
+        let suiteName = "BudgetSummaryTests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let stored = IncomeData(defaults: defaults)
+        stored.monthlyIncome = 5000
+        stored.monthlyFixedCosts = 2000
+        let expense = Expense(title: "Computer", amount: 1500, category: .leisure, date: now)
+
+        let summary = BudgetSummary(stored: stored, expenses: [expense], now: now)
+
+        #expect(summary.fixedCosts == 2000)
+        #expect(summary.available == 1500)
+        #expect(summary.spentPercent == 0.5)
+    }
+
+    @Test
+    func countsMissingAmountsAsZero() throws {
+        let suiteName = "BudgetSummaryTests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let summary = BudgetSummary(stored: IncomeData(defaults: defaults), expenses: [], now: now)
+
+        #expect(summary.income == 0)
+        #expect(summary.fixedCosts == 0)
+    }
 }
