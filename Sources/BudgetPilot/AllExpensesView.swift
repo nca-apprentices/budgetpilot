@@ -12,6 +12,14 @@ struct AllExpensesView: View {
         ExpenseHistory(expenses: expenses, period: period, now: .now)
     }
 
+    private var periodLabel: String {
+        switch period {
+        case .week: "This week"
+        case .month: Date.now.formatted(.dateTime.month(.wide).year())
+        case .year: Date.now.formatted(.dateTime.year())
+        }
+    }
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 24) {
@@ -23,7 +31,7 @@ struct AllExpensesView: View {
                 .pickerStyle(.segmented)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(period.title)
+                    Text(periodLabel)
                         .foregroundStyle(.secondary)
 
                     Text(history.total, format: .currency(code: "CHF"))
