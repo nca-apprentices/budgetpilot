@@ -25,97 +25,100 @@ struct ChatView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
+        NavigationStack {
+            ZStack {
+                AppBackground()
 
-            VStack {
-                if selectedTab == .chat {
-                    if messages.isEmpty {
-                        if !assistant.isLoaded {
-                            ModelLoadingView(progress: assistant.loadProgress)
-                                .frame(maxHeight: .infinity)
+                VStack {
+                    if selectedTab == .chat {
+                        if messages.isEmpty {
+                            if !assistant.isLoaded {
+                                ModelLoadingView(progress: assistant.loadProgress)
+                                    .frame(maxHeight: .infinity)
+                            } else {
+                                Text("How can I help you with your budget?")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding()
+                                    .frame(maxHeight: .infinity)
+                            }
                         } else {
-                            Text("How can I help you with your budget?")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding()
-                                .frame(maxHeight: .infinity)
+                            ScrollView(showsIndicators: false) {
+                                VStack(spacing: 8) {
+                                    ForEach($messages) { $message in
+                                        MessageBubble(text: message.text, isFromUser: message.isFromUser)
+                                        ForEach(message.offers.prefix(5)) { offer in
+                                            PriceOfferRow(
+                                                offer: offer,
+                                                isOnWishlist: wishes.contains { $0.url == offer.url }
+                                            ) {
+                                                toggleWishlist(offer)
+                                            }
+                                        }
+                                        if let proposal = message.proposal {
+                                            ConfirmButton(
+                                                title: proposal.confirmTitle,
+                                                doneTitle: proposal.doneTitle,
+                                                isDone: message.isConfirmed
+                                            ) {
+                                                confirm(proposal, from: $message)
+                                            }
+                                        }
+                                    }
+                                    if let pendingStatus {
+                                        PendingBubble(text: pendingStatus)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .defaultScrollAnchor(.bottom)
+                            .scrollEdgeEffectStyle(.hard, for: .top)
                         }
                     } else {
-                        ScrollView(showsIndicators: false) {
-                            VStack(spacing: 8) {
-                                ForEach($messages) { $message in
-                                    MessageBubble(text: message.text, isFromUser: message.isFromUser)
-                                    ForEach(message.offers.prefix(5)) { offer in
-                                        PriceOfferRow(
-                                            offer: offer,
-                                            isOnWishlist: wishes.contains { $0.url == offer.url }
-                                        ) {
-                                            toggleWishlist(offer)
-                                        }
-                                    }
-                                    if let proposal = message.proposal {
-                                        ConfirmButton(
-                                            title: proposal.confirmTitle,
-                                            doneTitle: proposal.doneTitle,
-                                            isDone: message.isConfirmed
-                                        ) {
-                                            confirm(proposal, from: $message)
-                                        }
-                                    }
-                                }
-                                if let pendingStatus {
-                                    PendingBubble(text: pendingStatus)
-                                }
+                        BudgetView()
+                    }
+                }
+                .contentShape(.rect)
+                .onTapGesture { isInputFocused = false }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .safeAreaInset(edge: .top) {
+                    TopBar(selection: $selectedTab)
+                        .padding(.top, 8)
+                }
+                .safeAreaInset(edge: .bottom) {
+                    if selectedTab == .chat {
+                        ChatInputBar(
+                            text: $inputText,
+                            selectedInputMode: $inputMode,
+                            isFocused: $isInputFocused,
+                            canSend: canSend
+                        ) { text in
+                            messages.append(ChatMessage(text: text, isFromUser: true))
+                            switch inputMode {
+                            case .addWithAI: askAssistant(text)
+                            case .priceSearch: searchPrices(for: text)
                             }
-                            .padding(.horizontal, 16)
-                            .frame(maxWidth: .infinity)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .defaultScrollAnchor(.bottom)
-                        .scrollEdgeEffectStyle(.hard, for: .top)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
                     }
-                } else {
-                    BudgetView()
                 }
             }
-            .contentShape(.rect)
-            .onTapGesture { isInputFocused = false }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .safeAreaInset(edge: .top) {
-                TopBar(selection: $selectedTab)
-                    .padding(.top, 8)
+            .toolbar(.hidden, for: .navigationBar)
+            .onChange(of: selectedTab) {
+                isInputFocused = false
             }
-            .safeAreaInset(edge: .bottom) {
-                if selectedTab == .chat {
-                    ChatInputBar(
-                        text: $inputText,
-                        selectedInputMode: $inputMode,
-                        isFocused: $isInputFocused,
-                        canSend: canSend
-                    ) { text in
-                        messages.append(ChatMessage(text: text, isFromUser: true))
-                        switch inputMode {
-                        case .addWithAI: askAssistant(text)
-                        case .priceSearch: searchPrices(for: text)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
+            .task {
+                do {
+                    try await assistant.load()
+                } catch {
+                    messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
+                    loadFailed = true
                 }
-            }
-        }
-        .onChange(of: selectedTab) {
-            isInputFocused = false
-        }
-        .task {
-            do {
-                try await assistant.load()
-            } catch {
-                messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isFromUser: false))
-                loadFailed = true
             }
         }
     }
