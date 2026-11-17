@@ -50,9 +50,16 @@ struct BudgetView: View {
                     BudgetTile(title: "Expenses", amount: summary.spent)
                 }
 
-                Text("Recent expenses")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Recent expenses")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    Spacer()
+                    NavigationLink("All") {
+                        AllExpensesView()
+                    }
+                }
+                .tint(Color.appAccent)
 
                 if expenses.isEmpty {
                     Text("No expenses yet")

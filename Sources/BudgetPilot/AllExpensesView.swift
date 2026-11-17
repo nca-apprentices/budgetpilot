@@ -98,6 +98,9 @@ struct AllExpensesView: View {
                 lastDeleted = nil
             }
         }
+        .navigationTitle("Expenses")
+        .navigationBarTitleDisplayMode(.inline)
+        .background { AppBackground() }
     }
 }
 
